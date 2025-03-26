@@ -298,9 +298,9 @@ export default function Home() {
           <footer className="footer py-4">
             <div className="container">
               <div className="row">
-                {/* Luxury Escort Info */}
+                {/* Luxury models Info */}
                 <div className="col-md-3">
-                  <h4 className="text-white">Luxury Escort</h4>
+                  <h4 className="text-white">Luxury models</h4>
                   <p className="text-white-50">
                     Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut
                     elit tellus, luctus nec ullamcorper mattis, pulvinar dapibus
