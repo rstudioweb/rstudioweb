@@ -1,11 +1,13 @@
 "use client";
+import Head from "next/head";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { useState, useEffect } from "react";
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
+import JobCard from "../../components/JobCard";
 
 import LoadingScreen from "../../components/LoadingScreen";
-
+import HeroSection from "../../components/HeroSection";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
@@ -96,48 +98,22 @@ export default function Home() {
     },
   ];
 
+  const jobData = {
+    title: "Software Developer",
+    location: "Remote",
+    company: "Tech Innovations Inc.",
+    experience: "2+ Years",
+    skills: "JavaScript, Node.js, React, MongoDB",
+    postDate: "October 26, 2023",
+  };
+
   return (
     <>
       {loading ? (
         <LoadingScreen setLoading={setLoading} />
       ) : (
         <div>
-          {/* Hero Section */}
-          {/* <header className="hero-section">
-        <div className="container">
-          <h1 className="display-3 fw-bold text-danger fade-in">
-            Luxury & Elegance
-          </h1>
-          <p className="lead fade-in">
-            Experience the finest with R Studio. Join today and redefine your
-            journey.
-          </p>
-          <a href="/signup" className="btn btn-danger btn-lg fade-in">
-            Get Started
-          </a>
-        </div>
-      </header> */}
-          {/* Hero Section with Video */}
-          <header className="hero-section">
-            <video autoPlay loop muted playsInline className="hero-video">
-              <source src="/videos/360679253075771401.mp4" type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
-            <div className="hero-overlay">
-              <div className="container text-center">
-                <h1 className="display-3 fw-bold text-danger fade-in">
-                  Luxury & Elegance
-                </h1>
-                <p className="lead fade-in">
-                  Experience the finest with R Studio. Join today and redefine
-                  your journey.
-                </p>
-                <a href="/signup" className="btn btn-danger btn-lg fade-in">
-                  Get Started
-                </a>
-              </div>
-            </div>
-          </header>
+          <HeroSection />
 
           {/* Main Content Section */}
           <section className="main-content py-5">
@@ -145,13 +121,16 @@ export default function Home() {
               <div className="row align-items-center">
                 {/* Left Column - Info Box */}
                 <div className="col-md-4 px-5">
-                  <div className="info-box p-4 bg-danger text-white text-center shadow-lg">
+                  <div className="info-box">
+                    <img src="/images/poster.png" alt="Why Choose R Studio?" />
+                  </div>
+                  {/* <div className="info-box p-4 bg-danger text-white text-center shadow-lg">
                     <h3>Why Choose R Studio?</h3>
                     <p>
                       We provide a safe, flexible, and lucrative environment for
                       models to showcase their talent.
                     </p>
-                  </div>
+                  </div> */}
                 </div>
                 {/* Right Column - Card Slider */}
                 <div className="col-md-8 card-slider px-5">
@@ -232,9 +211,7 @@ export default function Home() {
           </section>
           <section className="why-choose-us py-5">
             <div className="container text-center">
-              <h2 className="text-white fw-bold">
-                Why Choose Our Escort Agency?
-              </h2>
+              <h2 className="text-white fw-bold">Why Choose Our Studio?</h2>
               <p className="text-white">
                 There Are a Lot of Reasons to Choose Us. Here Are a Few.
               </p>
@@ -254,7 +231,7 @@ export default function Home() {
                   <div className="why-card">
                     <i className="fas fa-gem why-icon"></i>
                     <h3>12</h3>
-                    <p>High-End Escorts</p>
+                    <p>High-End Models</p>
                   </div>
                 </div>
 
@@ -263,7 +240,7 @@ export default function Home() {
                   <div className="why-card">
                     <i className="fas fa-female why-icon"></i>
                     <h3>10/10</h3>
-                    <p>Genuinely Beautiful Escorts</p>
+                    <p>Genuinely Beautiful Models</p>
                   </div>
                 </div>
 
@@ -284,6 +261,39 @@ export default function Home() {
             async
             type="text/javascript"
           ></script>
+          <section className="contact-section py-5">
+            <div className="container">
+              <div className="row">
+                <div className="col-md-6">
+                  <iframe
+                    allow="microphone;"
+                    width="350"
+                    height="430"
+                    src="https://console.dialogflow.com/api-client/demo/embedded/e44d3b0d-9a9b-4d32-8da7-c960c4d80f12"
+                  ></iframe>
+                </div>
+                <div className="col-md-6">
+                  <Head>
+                    <script src="https://www.gstatic.com/dialogflow-messenger/integration/v1/dialogflow-messenger.js"></script>
+                    <meta
+                      name="viewport"
+                      content="width=device-width, initial-scale=1"
+                    ></meta>
+                  </Head>
+                  <h1>Contact Us</h1>
+                  ww
+                  <df-messenger
+                    intent="WELCOME"
+                    chat-title="HR Assistant"
+                    agent-id="e44d3b0d-9a9b-4d32-8da7-c960c4d80f12"
+                    language-code="en"
+                    theme-color="#4285f4"
+                    expanded="true"
+                  ></df-messenger>
+                </div>
+              </div>
+            </div>
+          </section>
           {/* Footer */}
           <footer className="footer py-4">
             <div className="container">
