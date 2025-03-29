@@ -4,7 +4,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import { useState, useEffect } from "react";
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
-import JobCard from "../../components/JobCard";
+import BotChat from "../../components/BotChat"; // Adjust path based on your project
 
 import LoadingScreen from "../../components/LoadingScreen";
 import HeroSection from "../../components/HeroSection";
@@ -215,7 +215,6 @@ export default function Home() {
               <p className="text-white">
                 There Are a Lot of Reasons to Choose Us. Here Are a Few.
               </p>
-
               <div className="row justify-content-center">
                 {/* Card 1 */}
                 <div className="col-md-3">
@@ -225,7 +224,6 @@ export default function Home() {
                     <p>Years in Operation</p>
                   </div>
                 </div>
-
                 {/* Card 2 */}
                 <div className="col-md-3">
                   <div className="why-card">
@@ -234,7 +232,6 @@ export default function Home() {
                     <p>High-End Models</p>
                   </div>
                 </div>
-
                 {/* Card 3 */}
                 <div className="col-md-3">
                   <div className="why-card">
@@ -243,7 +240,6 @@ export default function Home() {
                     <p>Genuinely Beautiful Models</p>
                   </div>
                 </div>
-
                 {/* Card 4 */}
                 <div className="col-md-3">
                   <div className="why-card">
@@ -273,23 +269,10 @@ export default function Home() {
                   ></iframe>
                 </div>
                 <div className="col-md-6">
-                  <Head>
-                    <script src="https://www.gstatic.com/dialogflow-messenger/integration/v1/dialogflow-messenger.js"></script>
-                    <meta
-                      name="viewport"
-                      content="width=device-width, initial-scale=1"
-                    ></meta>
-                  </Head>
-                  <h1>Contact Us</h1>
-                  ww
-                  <df-messenger
-                    intent="WELCOME"
-                    chat-title="HR Assistant"
-                    agent-id="e44d3b0d-9a9b-4d32-8da7-c960c4d80f12"
-                    language-code="en"
-                    theme-color="#4285f4"
-                    expanded="true"
-                  ></df-messenger>
+                  <div>
+                    <h1>Welcome to R Studio</h1>
+                    <BotChat />
+                  </div>
                 </div>
               </div>
             </div>
@@ -300,12 +283,24 @@ export default function Home() {
               <div className="row">
                 {/* Luxury models Info */}
                 <div className="col-md-3">
-                  <h4 className="text-white">Luxury models</h4>
-                  <p className="text-white-50">
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut
-                    elit tellus, luctus nec ullamcorper mattis, pulvinar dapibus
-                    leo.
-                  </p>
+                  <h4 className="text-white">R Studio</h4>
+                  <ul className="nav flex-column text-white">
+                    <li className="nav-item">
+                      <a className="nav-link text-white" href="/privacy-policy">
+                        Privacy
+                      </a>
+                    </li>
+                    <li className="nav-item">
+                      <a className="nav-link text-white" href="/terms">
+                        Terms
+                      </a>
+                    </li>
+                    <li className="nav-item">
+                      <a className="nav-link text-white" href="/about-us">
+                        About Us
+                      </a>
+                    </li>
+                  </ul>
                 </div>
 
                 {/* Payment Options */}

@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@11labs/react": "^0.1.0",
+    "@botpress/webchat": "2.3",
+    "@botpress/webchat-generator": "^0.2.15",
     "@fortawesome/fontawesome-free": "^6.7.2",
     "bootstrap": "^5.3.3",
     "framer-motion": "^12.6.0",
