@@ -3,7 +3,6 @@ import styles from "../page.module.css";
 import { Button } from "@/components/ui/button"; // You might not need Button here
 import Link from 'next/link';
 import React from 'react';
-
 export default function AboutUsPage() {
     return (
         <div className="container py-5">
