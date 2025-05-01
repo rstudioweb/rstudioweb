@@ -7,7 +7,7 @@ import Link from "next/link"
 export function NavigationMenuDemo() {
     return (
         <div className="w-full shadow-md">
-            <NavigationMenu className="max-w-9xl mx-auto w-full px-4 py-3">
+            <NavigationMenu className="max-w-9xl mx-auto w-full px-10 py-3">
                 <NavigationMenuList className="flex items-center justify-between w-full">
                     <NavigationMenuItem>
                         <NavigationMenuLink asChild>
@@ -25,13 +25,13 @@ export function NavigationMenuDemo() {
                             </NavigationMenuLink>
                             <Button
                                 variant="outline"
-                                className="border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-black transition"
+                                className="border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-black px-6 py-2 rounded-full transition text-sm shadow"
                             >
                                 Join Us
                             </Button>
                             <Button
                                 variant="default"
-                                className="bg-red-600 hover:bg-red-700 transition"
+                                className="bg-red-600 hover:bg-red-700 text-white transition rounded-full px-6 py-2 text-sm shadow"
                             >
                                 Login
                             </Button>

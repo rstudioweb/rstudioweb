@@ -202,7 +202,7 @@ export default function ChatbotForm() {
                     R STUDIO
                 </div>
                 {/* Slider Section */}
-                <div className="flex justify-center z-30 relative mb-6">
+                {/* <div className="flex justify-center z-30 relative mb-6">
                     <div className="w-[360px] h-[90px]">
                         <Slider
                             dots={false}
@@ -225,7 +225,7 @@ export default function ChatbotForm() {
                             </div>
                         </Slider>
                     </div>
-                </div>
+                </div> */}
                 {/* Form Section */}
                 <div className="">
                     <div className="fixed bottom-20  inset-x-0  z-50">
@@ -322,16 +322,24 @@ export default function ChatbotForm() {
                         </div>
                     </div>
                 </div>
-                <footer className="{styles.footer} text-center py-5 theme-bg fixed bottom-0 bg-red-900 w-100">
-                    <p>&copy; {new Date().getFullYear()} R Studio. All rights reserved.</p>
-                    <div className={styles.footerLinks}>
-                        <Link href="/privacy" className={styles.footerLink}>Privacy Policy</Link>
-                        <Link href="/terms" className={styles.footerLink}>Terms & Conditions</Link>
-                    </div>
-                </footer>
             </main >
             <ThemeToggle />
         </div >
+        <footer className={styles.footer}>
+        <div className={styles.footerContent}>
+          <p>
+            &copy; {new Date().getFullYear()} R Studio. All rights reserved.
+          </p>
+          <div className={styles.footerLinks}>
+            <Link href="/privacy" className={styles.footerLink}>
+              Privacy Policy
+            </Link>
+            <Link href="/terms" className={styles.footerLink}>
+              Terms & Conditions
+            </Link>
+          </div>
+        </div>
+      </footer>
     </div >
     );
 
