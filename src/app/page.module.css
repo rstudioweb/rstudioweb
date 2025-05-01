@@ -61,7 +61,6 @@
   background-color: #b91c1c;
 }
 
-
 .footer {
   text-align: center;
   font-size: 0.875rem;
@@ -87,7 +86,6 @@
 .footerLink:hover {
   color: var(--color-secondary-foreground);
 }
-
 
 @media (prefers-color-scheme: dark) {
   .page {
@@ -151,7 +149,6 @@
     align-items: center;
     justify-content: center;
   }
-
 }
 
 @media (prefers-color-scheme: dark) {

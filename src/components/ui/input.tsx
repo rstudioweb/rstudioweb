@@ -8,9 +8,9 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
       type={type}
       data-slot="input"
       className={cn(
-        "file:tw-text-foreground placeholder:tw-text-muted-foreground selection:tw-bg-primary selection:tw-text-primary-foreground dark:tw-bg-input/30 tw-border-input tw-flex tw-h-9 tw-w-full tw-min-w-0 tw-rounded-md tw-border tw-bg-transparent tw-px-3 tw-py-1 tw-text-base tw-shadow-xs tw-transition-[color,box-shadow] tw-outline-none file:tw-inline-flex file:tw-h-7 file:tw-border-0 file:tw-bg-transparent file:tw-text-sm file:tw-font-medium disabled:tw-pointer-events-none disabled:tw-cursor-not-allowed disabled:tw-opacity-50 md:tw-text-sm",
-        "focus-visible:tw-border-ring focus-visible:tw-ring-ring/50 focus-visible:tw-ring-[3px]",
-        "aria-invalid:tw-ring-destructive/20 dark:aria-invalid:tw-ring-destructive/40 aria-invalid:tw-border-destructive",
+        "file:tw-text-neutral-950 placeholder:tw-text-neutral-500 selection:tw-bg-neutral-900 selection:tw-text-neutral-50 dark:tw-bg-neutral-200/30 tw-border-neutral-200 tw-flex tw-h-9 tw-w-full tw-min-w-0 tw-rounded-md tw-border tw-bg-transparent tw-px-3 tw-py-1 tw-text-base tw-shadow-xs tw-transition-[color,box-shadow] tw-outline-none file:tw-inline-flex file:tw-h-7 file:tw-border-0 file:tw-bg-transparent file:tw-text-sm file:tw-font-medium disabled:tw-pointer-events-none disabled:tw-cursor-not-allowed disabled:tw-opacity-50 md:tw-text-sm dark:file:tw-text-neutral-50 dark:placeholder:tw-text-neutral-400 dark:selection:tw-bg-neutral-50 dark:selection:tw-text-neutral-900 dark:dark:tw-bg-neutral-800/30 dark:tw-border-neutral-800",
+        "focus-visible:tw-border-neutral-950 focus-visible:tw-ring-neutral-950/50 focus-visible:tw-ring-[3px] dark:focus-visible:tw-border-neutral-300 dark:focus-visible:tw-ring-neutral-300/50",
+        "aria-invalid:tw-ring-red-500/20 dark:aria-invalid:tw-ring-red-500/40 aria-invalid:tw-border-red-500 dark:aria-invalid:tw-ring-red-900/20 dark:dark:aria-invalid:tw-ring-red-900/40 dark:aria-invalid:tw-border-red-900",
         className
       )}
       {...props}

@@ -58,7 +58,7 @@ function SheetContent({
       <SheetPrimitive.Content
         data-slot="sheet-content"
         className={cn(
-          "tw-bg-background data-[state=open]:tw-animate-in data-[state=closed]:tw-animate-out tw-fixed tw-z-50 tw-flex tw-flex-col tw-gap-4 tw-shadow-lg tw-transition tw-ease-in-out data-[state=closed]:tw-duration-300 data-[state=open]:tw-duration-500",
+          "tw-bg-white data-[state=open]:tw-animate-in data-[state=closed]:tw-animate-out tw-fixed tw-z-50 tw-flex tw-flex-col tw-gap-4 tw-shadow-lg tw-transition tw-ease-in-out data-[state=closed]:tw-duration-300 data-[state=open]:tw-duration-500 dark:tw-bg-neutral-950",
           side === "right" &&
             "data-[state=closed]:tw-slide-out-to-right data-[state=open]:tw-slide-in-from-right tw-inset-y-0 tw-right-0 tw-h-full tw-w-3/4 tw-border-l sm:tw-max-w-sm",
           side === "left" &&
@@ -72,7 +72,7 @@ function SheetContent({
         {...props}
       >
         {children}
-        <SheetPrimitive.Close className="tw-ring-offset-background focus:tw-ring-ring data-[state=open]:tw-bg-secondary tw-absolute tw-top-4 tw-right-4 tw-rounded-xs tw-opacity-70 tw-transition-opacity hover:tw-opacity-100 focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-outline-hidden disabled:tw-pointer-events-none">
+        <SheetPrimitive.Close className="tw-ring-offset-white focus:tw-ring-neutral-950 data-[state=open]:tw-bg-neutral-100 tw-absolute tw-top-4 tw-right-4 tw-rounded-xs tw-opacity-70 tw-transition-opacity hover:tw-opacity-100 focus:tw-ring-2 focus:tw-ring-offset-2 focus:tw-outline-hidden disabled:tw-pointer-events-none dark:tw-ring-offset-neutral-950 dark:focus:tw-ring-neutral-300 dark:data-[state=open]:tw-bg-neutral-800">
           <XIcon className="tw-size-4" />
           <span className="tw-sr-only">Close</span>
         </SheetPrimitive.Close>
@@ -108,7 +108,7 @@ function SheetTitle({
   return (
     <SheetPrimitive.Title
       data-slot="sheet-title"
-      className={cn("tw-text-foreground tw-font-semibold", className)}
+      className={cn("tw-text-neutral-950 tw-font-semibold dark:tw-text-neutral-50", className)}
       {...props}
     />
   )
@@ -121,7 +121,7 @@ function SheetDescription({
   return (
     <SheetPrimitive.Description
       data-slot="sheet-description"
-      className={cn("tw-text-muted-foreground tw-text-sm", className)}
+      className={cn("tw-text-neutral-500 tw-text-sm dark:tw-text-neutral-400", className)}
       {...props}
     />
   )

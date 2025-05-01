@@ -3,6 +3,14 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { NavigationMenuDemo } from "../../components/Navbar";
 import ThemeToggle from "../../components/ThemeToggle";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Footer } from "../../components/Footer";
 
 export default function Home() {
   return (
@@ -74,12 +82,15 @@ export default function Home() {
                 A CAM
               </span>{" "}
               <br />
-              MODEL              
+              MODEL
             </h2>
 
             {/* Small description */}
             <p className="text-muted-foreground text-base leading-relaxed">
-            With a quarter-century of experience, R Studio was built for your success, offering unmatched traffic, top-tier earnings, and a unique commitment to safety and growth. Countless models have become millionaires on the platform, be the next one!
+              With a quarter-century of experience, R Studio was built for your
+              success, offering unmatched traffic, top-tier earnings, and a
+              unique commitment to safety and growth. Countless models have
+              become millionaires on the platform, be the next one!
             </p>
 
             {/* Buttons and Avatars */}
@@ -135,23 +146,91 @@ export default function Home() {
             </div>
           </div>
         </section>
+        <section className="bg-red-800 text-white items-center justify-between gap-4 py-20 px-6 md:px-20">
+          <h2 className="text-center text-2xl md:text-3xl font-semibold mb-2 max-w-4xl mx-auto">
+            Your Money Your rules. Turn your dreams into reality!
+          </h2>
+          <h6 className="text-center  font-semibold mb-10 max-w-4xl mx-auto">
+            Join the no. 1 premium cam platform in the world and start earning
+            anytime, anywhere!
+          </h6>
+          <div className="flex flex-wrap justify-center gap-6 max-w-8xl mx-auto">
+            {[
+              { label: "Daily Visitors", value: "245+" },
+              { label: "Growing Rate", value: "30.5%" },
+              { label: "Reached Clients", value: "9K+" },
+              { label: "Reviewed Clients", value: "2K+" },
+            ].map((stat, index) => (
+              <Card
+                key={index}
+                className="bg-red-900 text-white w-60 shadow-lg hover:shadow-xl transition rounded-2xl"
+              >
+                <CardContent className="p-6 text-center">
+                  <p className="text-4xl font-bold mb-2">{stat.value}</p>
+                  <p className="text-sm">{stat.label}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+
+        <section className="bg-[#f4f6fa] py-16 px-4 md:px-20">
+          <h2 className="text-4xl font-extrabold text-center text-[#0b0d17] mb-12">
+            FAQ QUESTIONS
+          </h2>
+
+          <Accordion
+            type="single"
+            collapsible
+            className="max-w-4xl mx-auto space-y-4"
+          >
+            <AccordionItem value="item-1">
+              <AccordionTrigger className="flex justify-between items-center w-full bg-white px-6 py-5 rounded-xl shadow-md hover:shadow-lg transition text-lg font-semibold text-[#0b0d17]">
+                <span>How to choose a perfect digital marketing plan?</span>
+              </AccordionTrigger>
+              <AccordionContent className="bg-white px-6 py-4 text-[#4b4f56] rounded-b-xl text-base leading-relaxed">
+                There are many ways to approach your strategy. Focus on your
+                goals, target audience, and analytics to ensure the best fit.
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="item-2">
+              <AccordionTrigger className="flex justify-between items-center w-full bg-white px-6 py-5 rounded-xl shadow-md hover:shadow-lg transition text-lg font-semibold text-[#0b0d17]">
+                <span>
+                  How to choose hosting capabilities beyond imagination?
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="bg-white px-6 py-4 text-[#4b4f56] rounded-b-xl text-base leading-relaxed">
+                Web hosting is a stressful job, and we're here to make it easy.
+                Superior site performance with a fast load factor. One place for
+                all your web hosting needs—no hidden costs.
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="item-3">
+              <AccordionTrigger className="flex justify-between items-center w-full bg-white px-6 py-5 rounded-xl shadow-md hover:shadow-lg transition text-lg font-semibold text-[#0b0d17]">
+                <span>How to faster and cheaper than the rest?</span>
+              </AccordionTrigger>
+              <AccordionContent className="bg-white px-6 py-4 text-[#4b4f56] rounded-b-xl text-base leading-relaxed">
+                Use optimized services, cloud scaling, and performance boosters
+                to outpace competition without overspending.
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="item-4">
+              <AccordionTrigger className="flex justify-between items-center w-full bg-white px-6 py-5 rounded-xl shadow-md hover:shadow-lg transition text-lg font-semibold text-[#0b0d17]">
+                <span>When need to expertise and security you need?</span>
+              </AccordionTrigger>
+              <AccordionContent className="bg-white px-6 py-4 text-[#4b4f56] rounded-b-xl text-base leading-relaxed">
+                Our expert team and advanced encryption protocols ensure both
+                security and support, 24/7.
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </section>
       </main>
       <ThemeToggle />
-      <footer className={styles.footer}>
-        <div className={styles.footerContent}>
-          <p>
-            &copy; {new Date().getFullYear()} R Studio. All rights reserved.
-          </p>
-          <div className={styles.footerLinks}>
-            <Link href="/privacy" className={styles.footerLink}>
-              Privacy Policy
-            </Link>
-            <Link href="/terms" className={styles.footerLink}>
-              Terms & Conditions
-            </Link>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
