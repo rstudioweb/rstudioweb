@@ -3,12 +3,10 @@
   "/api/mform1/route": "app/api/mform1/route.js",
   "/api/submit/route": "app/api/submit/route.js",
   "/favicon.ico/route": "app/favicon.ico/route.js",
-  "/api/mimg1/route": "app/api/mimg1/route.js",
-  "/about/page": "app/about/page.js",
   "/page": "app/page.js",
+  "/about/page": "app/about/page.js",
   "/mhome/page": "app/mhome/page.js",
-  "/home/page": "app/home/page.js",
   "/privacy/page": "app/privacy/page.js",
-  "/signup/form/page": "app/signup/form/page.js",
+  "/home/page": "app/home/page.js",
   "/signup/page": "app/signup/page.js"
 }
