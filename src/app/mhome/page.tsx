@@ -122,7 +122,7 @@ export default function MobileHomePage() {
               <br />
               <span className="text-[#ff2a6d]">Make Money</span>
             </p>
-            <Link href="/signup/form">
+            <Link href="/signup">
               <Button className="bg-[#ff2a6d] text-white px-8 py-4 rounded-full text-lg shadow-lg hover:bg-[#cc2358] transition mt-4">
                 Apply Now
               </Button>

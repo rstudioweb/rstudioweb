@@ -1,0 +1,12 @@
+{
+  "/_not-found/page": "/_not-found",
+  "/api/mform1/route": "/api/mform1",
+  "/api/submit/route": "/api/submit",
+  "/favicon.ico/route": "/favicon.ico",
+  "/about/page": "/about",
+  "/mhome/page": "/mhome",
+  "/home/page": "/home",
+  "/privacy/page": "/privacy",
+  "/signup/page": "/signup",
+  "/page": "/"
+}
