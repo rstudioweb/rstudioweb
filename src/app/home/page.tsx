@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/accordion";
 import { Footer } from "../../components/Footer";
 
-export default function Home() {
+export default function HomeMobile() {
   return (
     <div className={styles.wrapper}>
       <NavigationMenuDemo />

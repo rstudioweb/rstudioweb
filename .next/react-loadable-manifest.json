@@ -4,5 +4,18 @@
     "files": [
       "static/chunks/_app-pages-browser_node_modules_next_dist_client_dev_noop-turbopack-hmr_js.js"
     ]
+  },
+  "app\\page.tsx -> ./home/mpage": {
+    "id": "app\\page.tsx -> ./home/mpage",
+    "files": [
+      "static/chunks/_app-pages-browser_src_app_home_mpage_tsx.js"
+    ]
+  },
+  "app\\page.tsx -> ./home/page": {
+    "id": "app\\page.tsx -> ./home/page",
+    "files": [
+      "static/css/_app-pages-browser_src_app_home_page_tsx.css",
+      "static/chunks/_app-pages-browser_src_app_home_page_tsx.js"
+    ]
   }
 }

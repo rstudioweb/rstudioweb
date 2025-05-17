@@ -1,4 +1,6 @@
 {
-  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/signup/form/page": "app/signup/form/page.js",
+  "/mhome/page": "app/mhome/page.js",
   "/page": "app/page.js"
 }

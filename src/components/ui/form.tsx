@@ -97,7 +97,7 @@ function FormLabel({
     <Label
       data-slot="form-label"
       data-error={!!error}
-      className={cn("data-[error=true]:tw-text-destructive", className)}
+      className={cn("data-[error=true]:tw-text-red-500 dark:data-[error=true]:tw-text-red-900", className)}
       htmlFor={formItemId}
       {...props}
     />
@@ -129,7 +129,7 @@ function FormDescription({ className, ...props }: React.ComponentProps<"p">) {
     <p
       data-slot="form-description"
       id={formDescriptionId}
-      className={cn("tw-text-muted-foreground tw-text-sm", className)}
+      className={cn("tw-text-neutral-500 tw-text-sm dark:tw-text-neutral-400", className)}
       {...props}
     />
   )
@@ -147,7 +147,7 @@ function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
     <p
       data-slot="form-message"
       id={formMessageId}
-      className={cn("tw-text-destructive tw-text-sm", className)}
+      className={cn("tw-text-red-500 tw-text-sm dark:tw-text-red-900", className)}
       {...props}
     >
       {body}
