@@ -83,6 +83,13 @@ export default function MobileHomePage() {
           >
             FAQ
           </a>
+          <a
+            href="/privacy"
+            onClick={closeSidebar}
+            className="block hover:text-[#ff2a6d]"
+          >
+            Privacy
+          </a>
         </nav>
       </div>
 

@@ -30,7 +30,7 @@ export function Footer() {
             <a href="#">Homepage</a>
             <a href="#">Terms Of Services</a>
             <a href="#">Model Login</a>
-            <a href="#">Privacy Policy</a>
+            <a href="/privacy">Privacy Policy</a>
             <a href="#">Dedicated Agency</a>
             <a href="#">FAQ</a>
             <a href="#">Billing & Support</a>
