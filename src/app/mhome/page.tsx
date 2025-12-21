@@ -100,9 +100,9 @@ export default function MobileHomePage() {
         </button>
         <h1 className="text-lg font-semibold text-[#ff2a6d]">R Studio</h1>
       </header>
-      <main className="pt-16 space-y-16 z-0">
+      <main className="pt-10 space-y-12 z-0">
         {/* Hero Slider */}
-        <section id="hero" className="relative h-[20vh] w-full overflow-hidden">
+        <section id="hero" className="relative h-[200px] w-full overflow-hidden mb-2">
           <AnimatePresence mode="wait">
             <motion.div
               key={images[index]}
@@ -120,25 +120,20 @@ export default function MobileHomePage() {
             </h2>
           </div>
         </section>
-        <section>
+        <section className="py-2 my-2">
           <div className="justify-center items-center text-center">
-            <p className="text-4xl text-center">
-              Join R Studio
-              <br />
-              <span className="">&</span>
-              <br />
-              <span className="text-[#ff2a6d]">Make Money</span>
+            <p className="text-3xl text-center">
+              Join Us & <span className="text-[#ff2a6d]">Make Money</span>
             </p>
             <Link href="/signup">
-              <Button className="bg-[#ff2a6d] text-white px-8 py-4 rounded-full text-lg shadow-lg hover:bg-[#cc2358] transition mt-4">
+              <Button className="bg-[#ff2a6d] text-white px-6 py-3 rounded-full text-base shadow-lg hover:bg-[#cc2358] transition mt-2">
                 Apply Now
               </Button>
             </Link>
           </div>
         </section>
         <section className="text-center">
-          <div>Special Offers</div>
-          Benefit:
+          <div>Special Offers & Benefits</div>
           <ul className="list-none md:list-disc text-left px-10">
             <li>Work flexibility anytime when free can join live,</li>
             <li>Use mask in the stream and hide face</li>
