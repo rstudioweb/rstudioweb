@@ -128,6 +128,11 @@ export default function TestPage() {
       link.href = result.dataUrl;
       link.download = `receipt-${Date.now()}.png`;
       link.click();
+      
+      // Reload page after download
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
     } finally {
       setIsSaving(false);
     }
