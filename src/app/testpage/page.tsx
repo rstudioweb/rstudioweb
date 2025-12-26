@@ -19,6 +19,7 @@ export default function TestPage() {
   const [isSharing, setIsSharing] = useState(false);
   const [upiTransactionId, setUpiTransactionId] = useState("");
   const [googleTransactionId, setGoogleTransactionId] = useState("");
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
   const receiptRef = useRef<HTMLDivElement>(null);
 
   const generateNumericId = () => {
@@ -63,6 +64,38 @@ export default function TestPage() {
     setUpiTransactionId((prev) => prev || generateNumericId());
     setGoogleTransactionId((prev) => prev || generateId("GTX"));
   }, []);
+
+  const palette =
+    theme === "dark"
+      ? {
+          pageBg: "#0f172a",
+          formBg: "#111827",
+          formText: "#e5e7eb",
+          cardBg: "#000000",
+          cardText: "#ffffff",
+          subText: "#9ca3af",
+          border: "#374151",
+          pillBg: "#2B2B2B",
+          pillText: "#e5e7eb",
+        }
+      : {
+          pageBg: "#f5f5f5",
+          formBg: "#ffffff",
+          formText: "#111827",
+          cardBg: "#ffffff",
+          cardText: "#111827",
+          subText: "#4b5563",
+          border: "#e5e7eb",
+          pillBg: "#e5e7eb",
+          pillText: "#111827",
+        };
+
+  const inputClass = "mt-2 w-full border rounded px-3 py-2";
+  const inputStyle = {
+    backgroundColor: "transparent",
+    color: palette.formText,
+    borderColor: palette.border,
+  } as const;
 
   const exportPng = async () => {
     if (!receiptRef.current) return null;
@@ -147,23 +180,32 @@ export default function TestPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 p-8">
+    <div
+      className="min-h-screen p-8"
+      style={{ backgroundColor: palette.pageBg }}
+    >
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-4xl font-bold text-white mb-12 text-center">
+        <h1
+          className="text-4xl font-bold mb-12 text-center"
+          style={{ color: palette.cardText }}
+        >
           Receipt Generator
         </h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Left Column - Form */}
-          <div className="bg-white rounded-lg p-8 shadow-xl">
-            <h2 className="text-2xl font-bold mb-6 text-gray-800">
+          <div
+            className="rounded-lg p-8 shadow-xl"
+            style={{ backgroundColor: palette.formBg, color: palette.formText }}
+          >
+            <h2 className="text-2xl font-bold mb-6" style={{ color: palette.formText }}>
               Payment Details
             </h2>
 
             <div className="space-y-6">
               {/* Name */}
               <div>
-                <Label htmlFor="name" className="text-gray-700 font-semibold">
+                <Label htmlFor="name" className="font-semibold" style={{ color: palette.formText }}>
                   Name
                 </Label>
                 <Input
@@ -173,13 +215,14 @@ export default function TestPage() {
                   placeholder="Enter full name"
                   value={formData.name}
                   onChange={handleChange}
-                  className="mt-2 text-gray-900 placeholder:text-gray-500"
+                  className={inputClass}
+                  style={inputStyle}
                 />
               </div>
 
               {/* UPI ID / Mobile */}
               <div>
-                <Label htmlFor="upiId" className="text-gray-700 font-semibold">
+                <Label htmlFor="upiId" className="font-semibold" style={{ color: palette.formText }}>
                   UPI ID or Mobile Number
                 </Label>
                 <Input
@@ -189,13 +232,14 @@ export default function TestPage() {
                   placeholder="example@upi or 9876543210"
                   value={formData.upiId}
                   onChange={handleChange}
-                  className="mt-2 text-gray-900 placeholder:text-gray-500"
+                  className={inputClass}
+                  style={inputStyle}
                 />
               </div>
 
               {/* Amount */}
               <div>
-                <Label htmlFor="amount" className="text-gray-700 font-semibold">
+                <Label htmlFor="amount" className="font-semibold" style={{ color: palette.formText }}>
                   Amount (₹)
                 </Label>
                 <Input
@@ -205,13 +249,14 @@ export default function TestPage() {
                   placeholder="Enter amount"
                   value={formData.amount}
                   onChange={handleChange}
-                  className="mt-2 text-gray-900 placeholder:text-gray-500"
+                  className={inputClass}
+                  style={inputStyle}
                 />
               </div>
 
               {/* Remarks */}
               <div>
-                <Label htmlFor="remarks" className="text-gray-700 font-semibold">
+                <Label htmlFor="remarks" className="font-semibold" style={{ color: palette.formText }}>
                   Remarks
                 </Label>
                 <Textarea
@@ -220,14 +265,15 @@ export default function TestPage() {
                   placeholder="Enter remarks (e.g., XMass Winning Amount)"
                   value={formData.remarks}
                   onChange={handleChange}
-                  className="mt-2 text-gray-900 placeholder:text-gray-500 bg-gray-700 text-white placeholder:text-gray-400 rounded-lg p-3 border border-gray-600"
+                  className={`${inputClass} rounded-lg`}
+                  style={inputStyle}
                   rows={3}
                 />
               </div>
 
               {/* Date & Time */}
               <div>
-                <Label htmlFor="dateTime" className="text-gray-700 font-semibold">
+                <Label htmlFor="dateTime" className="font-semibold" style={{ color: palette.formText }}>
                   Date & Time
                 </Label>
                 <Input
@@ -236,8 +282,52 @@ export default function TestPage() {
                   type="datetime-local"
                   value={formData.dateTime}
                   onChange={handleChange}
-                  className="mt-2 text-gray-900 placeholder:text-gray-500"
+                  className={inputClass}
+                  style={inputStyle}
                 />
+              </div>
+
+              {/* Theme Toggle */}
+              <div className="flex items-center gap-4">
+                <Label className="font-semibold" style={{ color: palette.formText }}>
+                  Theme
+                </Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={theme === "dark" ? "default" : "outline"}
+                    onClick={() => setTheme("dark")}
+                    className="px-4"
+                  >
+                    Dark
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={theme === "light" ? "default" : "outline"}
+                    onClick={() => setTheme("light")}
+                    className="px-4"
+                  >
+                    Light
+                  </Button>
+                </div>
+              </div>
+
+              {/* Save / Share Actions */}
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <Button
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="rounded-full px-6 py-2 bg-slate-200 text-slate-900 hover:bg-slate-300"
+                >
+                  {isSaving ? "Saving..." : "Save as PNG"}
+                </Button>
+                <Button
+                  onClick={handleShare}
+                  disabled={isSharing}
+                  className="rounded-full px-6 py-2 bg-slate-700 text-white hover:bg-slate-600"
+                >
+                  {isSharing ? "Sharing..." : "Share to WhatsApp"}
+                </Button>
               </div>
             </div>
           </div>
@@ -246,7 +336,8 @@ export default function TestPage() {
           <div className="flex items-center justify-center">
             <div
               ref={receiptRef}
-              className="w-full max-w-sm bg-[#000000] rounded-2xl p-8 shadow-2xl text-center text-[#ffffff]"
+              className="w-full max-w-sm rounded-2xl p-8 shadow-2xl text-center"
+              style={{ backgroundColor: palette.cardBg, color: palette.cardText }}
             >
               {/* Avatar */}
               <div className="w-24 h-24 rounded-full bg-teal-500 flex items-center justify-center mx-auto mb-6">
@@ -261,7 +352,7 @@ export default function TestPage() {
               </p>
 
               {/* UPI ID */}
-              <p className="text-[#9ca3af] text-sm mb-6">
+              <p className="text-sm mb-6" style={{ color: palette.subText }}>
                 {formData.upiId || "upi@address"}
               </p>
 
@@ -272,7 +363,10 @@ export default function TestPage() {
 
               {/* Remarks */}
               <div className="flex justify-center mb-8">
-                <span className="px-6 py-3 rounded-full bg-[#2B2B2B] text-[#e5e7eb] text-sm">
+                <span
+                  className="px-6 py-3 rounded-full text-sm"
+                  style={{ backgroundColor: palette.pillBg, color: palette.pillText }}
+                >
                   {formData.remarks || "XMass Winning Amount"}
                 </span>
               </div>
@@ -309,38 +403,55 @@ export default function TestPage() {
               </div>
 
               {/* Divider Line */}
-              <div className="border-t border-[#374151] mb-6"></div>
+              <div
+                className="border-t mb-6"
+                style={{ borderColor: palette.border }}
+              ></div>
 
               {/* Date Time */}
-              <p className="text-[#9ca3af] text-xs mb-6">
+              <p className="text-xs mb-6" style={{ color: palette.subText }}>
                 {formatDateTime(formData.dateTime)}
               </p>
 
               {/* Bank Details Section */}
-              <div className="rounded-lg p-4 mb-6 text-left text-sm space-y-3 border border-[#374151]">
+              <div
+                className="rounded-lg p-4 mb-6 text-left text-sm space-y-3 border"
+                style={{ borderColor: palette.border, color: palette.cardText }}
+              >
                 <div className="flex justify-between cursor-pointer">
                   <span>Jio Payments Bank 2594</span>
                   <span>▼</span>
                 </div>
 
-                <div className="border-t border-[#374151] pt-3 space-y-2 text-xs text-[#d1d5db]">
+                <div
+                  className="border-t pt-3 space-y-2 text-xs"
+                  style={{ borderColor: palette.border, color: palette.subText }}
+                >
                   <div>
-                    <p className="font-semibold">UPI transaction ID</p>
+                    <p className="font-semibold" style={{ color: palette.cardText }}>
+                      UPI transaction ID
+                    </p>
                     <p>{upiTransactionId}</p>
                   </div>
 
                   <div>
-                    <p className="font-semibold">To: {(formData.name || "NAME").toUpperCase()}</p>
-                      <p>Google Pay · {formData.upiId || "upi@address"}</p>
+                    <p className="font-semibold" style={{ color: palette.cardText }}>
+                      To: {(formData.name || "NAME").toUpperCase()}
+                    </p>
+                    <p>Google Pay · {formData.upiId || "upi@address"}</p>
                   </div>
 
                   <div>
-                    <p className="font-semibold">From: S ROY (Jio Payments Bank)</p>
+                    <p className="font-semibold" style={{ color: palette.cardText }}>
+                      From: S ROY (Jio Payments Bank)
+                    </p>
                     <p>Google Pay · rroysroy@okaxis</p>
                   </div>
 
                   <div>
-                    <p className="font-semibold">Google transaction ID</p>
+                    <p className="font-semibold" style={{ color: palette.cardText }}>
+                      Google transaction ID
+                    </p>
                     <p>{googleTransactionId}</p>
                   </div>
                 </div>
@@ -364,22 +475,6 @@ export default function TestPage() {
                   height={40}
                 />
               </div>
-            </div>
-            <div className="flex flex-col items-center gap-3 mt-4">
-              <Button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="rounded-full px-6 py-2 bg-slate-200 text-slate-900 hover:bg-slate-300"
-              >
-                {isSaving ? "Saving..." : "Save as PNG"}
-              </Button>
-              <Button
-                onClick={handleShare}
-                disabled={isSharing}
-                className="rounded-full px-6 py-2 bg-slate-700 text-white hover:bg-slate-600"
-              >
-                {isSharing ? "Sharing..." : "Share to WhatsApp"}
-              </Button>
             </div>
           </div>
         </div>
