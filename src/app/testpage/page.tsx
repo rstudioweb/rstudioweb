@@ -159,7 +159,7 @@ export default function TestPage() {
         const dataUrl = await new Promise<string>((resolve) => {
           const reader = new FileReader();
           reader.onload = () => resolve(reader.result as string);
-          reader.readAsDataURL(blob);
+          reader.readAsDataURL(file);
         });
         const link = document.createElement("a");
         link.href = dataUrl;
