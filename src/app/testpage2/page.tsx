@@ -183,8 +183,12 @@ export default function TestPage2() {
                 />
               </div>
 
-              <Button onClick={handleSave} className="w-full mt-6" size="lg">
-                Save as PNG
+              <Button 
+                onClick={handleSave} 
+                className="w-full mt-6 bg-green-600 hover:bg-green-700 text-white font-bold text-lg py-6 rounded-lg shadow-lg" 
+                size="lg"
+              >
+                💾 Save as PNG
               </Button>
             </div>
           </div>
