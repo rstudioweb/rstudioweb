@@ -105,12 +105,12 @@ export default function TestPage2() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Form Section */}
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-2xl font-semibold mb-6 text-gray-800">
+          <div className="bg-white rounded-lg shadow-lg p-8 h-fit">
+            <h2 className="text-2xl font-semibold mb-8 text-gray-800">
               Transaction Details
             </h2>
 
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div>
                 <Label htmlFor="receiverName" className="text-gray-700">
                   Receiver Name
@@ -185,10 +185,11 @@ export default function TestPage2() {
 
               <Button 
                 onClick={handleSave} 
-                className="w-full mt-6 bg-green-600 hover:bg-green-700 text-white font-bold text-lg py-6 rounded-lg shadow-lg" 
+                className="w-full mt-8 bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-bold text-base py-3 px-6 rounded-lg shadow-lg transition-all duration-200 flex items-center justify-center gap-2" 
                 size="lg"
               >
-                💾 Save as PNG
+                <span>💾</span>
+                <span>Save as PNG</span>
               </Button>
             </div>
           </div>
