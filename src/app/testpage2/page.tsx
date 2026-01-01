@@ -121,7 +121,7 @@ export default function TestPage2() {
                   value={formData.receiverName}
                   onChange={handleChange}
                   placeholder="KOYEL GHORUI"
-                  className="mt-2"
+                  className="mt-2 text-gray-900"
                 />
               </div>
 
@@ -135,7 +135,7 @@ export default function TestPage2() {
                   value={formData.bankName}
                   onChange={handleChange}
                   placeholder="STATE BANK OF INDIA"
-                  className="mt-2"
+                  className="mt-2 text-gray-900"
                 />
               </div>
 
@@ -150,7 +150,7 @@ export default function TestPage2() {
                   value={formData.amount}
                   onChange={handleChange}
                   placeholder="12936"
-                  className="mt-2"
+                  className="mt-2 text-gray-900"
                 />
               </div>
 
@@ -164,7 +164,7 @@ export default function TestPage2() {
                   value={formData.narration}
                   onChange={handleChange}
                   placeholder="Salary for the month of December 2025"
-                  className="mt-2"
+                  className="mt-2 text-gray-900"
                   rows={3}
                 />
               </div>
@@ -179,7 +179,7 @@ export default function TestPage2() {
                   type="datetime-local"
                   value={formData.dateTime}
                   onChange={handleChange}
-                  className="mt-2"
+                  className="mt-2 text-gray-900"
                 />
               </div>
 
