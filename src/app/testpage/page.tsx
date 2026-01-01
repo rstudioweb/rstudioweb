@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import { toPng, toBlob } from "html-to-image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -99,7 +100,6 @@ export default function TestPage() {
 
   const exportPng = async () => {
     if (!receiptRef.current) return null;
-    const { toPng, toBlob } = await import("html-to-image");
     const node = receiptRef.current;
     const options = {
       pixelRatio: 2,
