@@ -27,6 +27,7 @@
     "date-fns": "^3.6.0",
     "formik": "^2.4.6",
     "framer-motion": "^12.11.3",
+    "googleapis": "^140.0.1",
     "html-to-image": "^1.11.13",
     "html2canvas": "^1.4.1",
     "keen-slider": "^6.8.6",

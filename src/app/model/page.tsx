@@ -5,7 +5,7 @@ import { ModelProfile } from "@/domain/model";
 
 export default function ModelPage() {
   const [model, setModel] = useState<ModelProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [modelId, setModelId] = useState<string>("");
 
@@ -47,216 +47,152 @@ export default function ModelPage() {
     }
   };
 
+  const getCurrentDate = () =>
+    new Date().toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+
+  const getCurrentTime = () =>
+    new Date().toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+    });
+
+  const [currentDate, setCurrentDate] = useState<string>("");
+  const [currentTime, setCurrentTime] = useState<string>("");
+
+  useEffect(() => {
+    const updateClock = () => {
+      setCurrentDate(getCurrentDate());
+      setCurrentTime(getCurrentTime());
+    };
+
+    updateClock();
+    const timer = setInterval(updateClock, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 p-8">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold text-white mb-4">
-            Model Profile Dashboard
-          </h1>
-          <p className="text-slate-300 text-lg">
-            View and manage your profile data from Google Sheets
-          </p>
+    <div className="min-h-screen bg-[#1a1a1a] text-white p-4">
+      <div className="flex justify-between items-center mb-6">
+        <button className="text-white text-2xl">☰</button>
+        <span className="text-sm text-gray-400">Last Online: {getCurrentDate()}</span>
+      </div>
+
+      <div className="relative mb-8">
+        <div className="flex justify-end mb-6">
+          {model?.profileImage ? (
+            <img
+              src={model.profileImage}
+              alt={model.name}
+              className="w-24 h-24 rounded-full object-cover border-2 border-gray-500"
+            />
+          ) : (
+            <div className="w-24 h-24 rounded-full bg-gray-400 border-2 border-gray-500 flex items-center justify-center">
+              <span className="text-3xl">👤</span>
+            </div>
+          )}
         </div>
 
-        {/* Search Section */}
-        <div className="bg-slate-800 rounded-lg p-6 mb-8 shadow-lg">
-          <label className="block text-white font-semibold mb-3">
-            Enter Model ID
-          </label>
-          <div className="flex gap-3">
+        <div className="mb-6">
+          <p className="text-lg text-gray-400 italic">Good Morning ...</p>
+          <h1 className="text-5xl text-white" style={{ fontStyle: "italic" }}>
+            {model?.name || "Guest"}
+          </h1>
+        </div>
+
+        <div className="flex items-center gap-4 text-sm text-gray-400 mb-8">
+          <span>{currentDate || getCurrentDate()}</span>
+          <span>🕐</span>
+          <span>{currentTime || getCurrentTime()}</span>
+        </div>
+      </div>
+
+      <div className="bg-red-600 text-white font-bold py-3 px-4 rounded-md mb-8 text-center">
+        YOU HAVE {model?.stats?.earnings || 735} TOKEN DUE FOR TODAY
+      </div>
+
+      <div className="mb-8">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-bold">TODAY</h2>
+          <button className="text-gray-400 hover:text-white transition">🔄</button>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3 mb-3 text-center">
+          <div className="text-xs text-gray-400 font-semibold">TGT</div>
+          <div className="text-xs text-gray-400 font-semibold">ACH</div>
+          <div className="text-xs text-gray-400 font-semibold">DUE</div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-red-600 text-white font-bold py-6 px-4 rounded-md text-center text-2xl">
+            {model?.stats?.completedProjects || 1050}
+          </div>
+          <div className="bg-green-500 text-white font-bold py-6 px-4 rounded-md text-center text-2xl">
+            {model?.stats?.activeProjects || 315}
+          </div>
+          <div className="bg-yellow-500 text-white font-bold py-6 px-4 rounded-md text-center text-2xl">
+            {model?.stats?.earnings || 735}
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div className="mb-4">
+          <h2 className="text-lg font-bold mb-2">MONTHLY</h2>
+          <p className="text-sm text-gray-400">{model?.stats?.reviews || 7}/24 Days</p>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3 mb-3 text-center">
+          <div className="text-xs text-gray-400 font-semibold">TGT</div>
+          <div className="text-xs text-gray-400 font-semibold">ACH</div>
+          <div className="text-xs text-gray-400 font-semibold">DUE</div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          <div className="bg-gray-700 text-white font-bold py-6 px-4 rounded-md text-center text-2xl">
+            {model?.stats?.completedProjects || 1050}
+          </div>
+          <div className="bg-gray-700 text-white font-bold py-6 px-4 rounded-md text-center text-2xl">
+            {model?.stats?.activeProjects || 315}
+          </div>
+          <div className="bg-gray-700 text-white font-bold py-6 px-4 rounded-md text-center text-2xl">
+            {model?.stats?.earnings || 735}
+          </div>
+        </div>
+
+        <div className="bg-gray-800 rounded-md p-8 min-h-[200px]"></div>
+      </div>
+
+      {!model && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-gray-900 rounded-lg p-6 w-full max-w-sm">
+            <h2 className="text-xl font-bold mb-4">Enter Model ID</h2>
             <input
               type="text"
               value={modelId}
               onChange={(e) => setModelId(e.target.value)}
               onKeyPress={(e) => e.key === "Enter" && fetchModel(modelId)}
-              placeholder="e.g., MODEL001"
-              className="flex-1 px-4 py-3 rounded-lg bg-slate-700 text-white placeholder-slate-400 border border-slate-600 focus:border-blue-500 focus:outline-none transition"
+              placeholder="e.g., Sunita"
+              className="w-full px-4 py-2 rounded-md bg-gray-700 text-white placeholder-gray-400 border border-gray-600 focus:border-blue-500 focus:outline-none mb-4"
             />
             <button
               onClick={() => fetchModel(modelId)}
               disabled={loading}
-              className="px-8 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 text-white font-semibold rounded-lg transition"
+              className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-semibold rounded-md transition"
             >
-              {loading ? "Loading..." : "Search"}
+              {loading ? "Loading..." : "Load Profile"}
             </button>
+            {error && <p className="text-red-500 text-sm mt-3">{error}</p>}
           </div>
         </div>
-
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-900/50 border border-red-700 text-red-200 px-6 py-4 rounded-lg mb-8">
-            <p className="font-semibold">Error</p>
-            <p>{error}</p>
-          </div>
-        )}
-
-        {/* Profile Card */}
-        {model ? (
-          <div className="bg-slate-800 rounded-lg shadow-2xl overflow-hidden">
-            {/* Profile Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-8 text-white">
-              <div className="flex items-start gap-6">
-                {model.profileImage ? (
-                  <img
-                    src={model.profileImage}
-                    alt={model.name}
-                    className="w-32 h-32 rounded-lg object-cover border-4 border-white shadow-lg"
-                  />
-                ) : (
-                  <div className="w-32 h-32 rounded-lg bg-slate-600 flex items-center justify-center border-4 border-white shadow-lg">
-                    <span className="text-4xl">👤</span>
-                  </div>
-                )}
-                <div className="flex-1">
-                  <h2 className="text-4xl font-bold mb-2">{model.name}</h2>
-                  <p className="text-blue-100 mb-4">{model.bio}</p>
-                  <div className="flex gap-4 flex-wrap">
-                    <span className="bg-white/20 px-3 py-1 rounded-full text-sm">
-                      ⭐ {model.rating.toFixed(1)}/5
-                    </span>
-                    <span className="bg-white/20 px-3 py-1 rounded-full text-sm">
-                      📊 {model.totalBookings} Bookings
-                    </span>
-                    <span
-                      className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                        model.status === "active"
-                          ? "bg-green-500"
-                          : model.status === "inactive"
-                          ? "bg-red-500"
-                          : "bg-yellow-500"
-                      }`}
-                    >
-                      {model.status.toUpperCase()}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Profile Details */}
-            <div className="p-8 space-y-6">
-              {/* Contact Info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h3 className="text-slate-400 text-sm font-semibold mb-2">
-                    EMAIL
-                  </h3>
-                  <p className="text-white text-lg">{model.email}</p>
-                </div>
-                <div>
-                  <h3 className="text-slate-400 text-sm font-semibold mb-2">
-                    PHONE
-                  </h3>
-                  <p className="text-white text-lg">{model.phone}</p>
-                </div>
-                <div>
-                  <h3 className="text-slate-400 text-sm font-semibold mb-2">
-                    LOCATION
-                  </h3>
-                  <p className="text-white text-lg">{model.location}</p>
-                </div>
-                <div>
-                  <h3 className="text-slate-400 text-sm font-semibold mb-2">
-                    JOINED
-                  </h3>
-                  <p className="text-white text-lg">
-                    {new Date(model.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-              </div>
-
-              {/* Social Links */}
-              {model.socialLinks && (
-                <div>
-                  <h3 className="text-slate-400 text-sm font-semibold mb-3">
-                    SOCIAL LINKS
-                  </h3>
-                  <div className="flex gap-3">
-                    {model.socialLinks.instagram && (
-                      <a
-                        href={model.socialLinks.instagram}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg transition"
-                      >
-                        Instagram
-                      </a>
-                    )}
-                    {model.socialLinks.twitter && (
-                      <a
-                        href={model.socialLinks.twitter}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition"
-                      >
-                        Twitter
-                      </a>
-                    )}
-                    {model.socialLinks.portfolio && (
-                      <a
-                        href={model.socialLinks.portfolio}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition"
-                      >
-                        Portfolio
-                      </a>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Stats */}
-              {model.stats && (
-                <div>
-                  <h3 className="text-slate-400 text-sm font-semibold mb-4">
-                    STATISTICS
-                  </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-slate-700 p-4 rounded-lg text-center">
-                      <p className="text-2xl font-bold text-blue-400">
-                        {model.stats.completedProjects}
-                      </p>
-                      <p className="text-slate-400 text-sm">Completed</p>
-                    </div>
-                    <div className="bg-slate-700 p-4 rounded-lg text-center">
-                      <p className="text-2xl font-bold text-green-400">
-                        {model.stats.activeProjects}
-                      </p>
-                      <p className="text-slate-400 text-sm">Active</p>
-                    </div>
-                    <div className="bg-slate-700 p-4 rounded-lg text-center">
-                      <p className="text-2xl font-bold text-yellow-400">
-                        {model.stats.reviews}
-                      </p>
-                      <p className="text-slate-400 text-sm">Reviews</p>
-                    </div>
-                    <div className="bg-slate-700 p-4 rounded-lg text-center">
-                      <p className="text-2xl font-bold text-purple-400">
-                        ${model.stats.earnings}
-                      </p>
-                      <p className="text-slate-400 text-sm">Earnings</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Last Updated */}
-            <div className="bg-slate-700 px-8 py-4 text-slate-400 text-sm">
-              Last updated: {new Date(model.updatedAt).toLocaleString()}
-            </div>
-          </div>
-        ) : !loading && !error ? (
-          <div className="bg-slate-800 rounded-lg p-12 text-center">
-            <p className="text-slate-400 text-lg">
-              Enter a model ID and click Search to view profile
-            </p>
-          </div>
-        ) : null}
-      </div>
+      )}
     </div>
   );
 }
+

@@ -7,8 +7,17 @@ import { fetchModelProfile } from '@/domain/model';
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { modelId } = body;
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid JSON body' },
+        { status: 400 },
+      );
+    }
+
+    const { modelId } = (body as { modelId?: string }) || {};
 
     if (!modelId) {
       return NextResponse.json(

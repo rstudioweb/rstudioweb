@@ -3,7 +3,99 @@
  * Handles Google Sheets integration and data fetching
  */
 
+import { google } from 'googleapis';
+
 import { ModelProfile, FetchModelResponse, GoogleSheetRow } from './types';
+
+type SheetRow = Record<string, string | number | undefined>;
+
+const SHEET_RANGE = process.env.GOOGLE_SHEETS_RANGE || 'Models!A1:Z';
+
+const hasServiceAccountConfig = () =>
+  Boolean(
+    process.env.GOOGLE_SHEETS_SA_CLIENT_EMAIL &&
+      process.env.GOOGLE_SHEETS_SA_PRIVATE_KEY &&
+      process.env.GOOGLE_SHEETS_SPREADSHEET_ID,
+  );
+
+const getSheetsClient = () => {
+  const clientEmail = process.env.GOOGLE_SHEETS_SA_CLIENT_EMAIL;
+  const privateKey = process.env.GOOGLE_SHEETS_SA_PRIVATE_KEY?.replace(/\\n/g, '\n');
+  const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
+
+  if (!clientEmail || !privateKey || !spreadsheetId) {
+    throw new Error('Google Sheets service account config missing');
+  }
+
+  const auth = new google.auth.JWT({
+    email: clientEmail,
+    key: privateKey,
+    scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+  });
+
+  const sheets = google.sheets({ version: 'v4', auth });
+
+  return { sheets, spreadsheetId };
+};
+
+const fetchRowsFromSheets = async (): Promise<SheetRow[]> => {
+  const { sheets, spreadsheetId } = getSheetsClient();
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: SHEET_RANGE,
+  });
+
+  type RowValues = Array<string | number>;
+
+  const values = (response.data.values as RowValues[] | undefined) || [];
+  if (!values.length) return [];
+
+  const headersRow: RowValues = (values[0] || []) as RowValues;
+  const dataRows: RowValues[] = values.slice(1) as RowValues[];
+
+  const normalizedHeaders: string[] = headersRow.map((header) =>
+    String(header ?? '').trim().toLowerCase(),
+  );
+
+  return dataRows.map((row) => {
+    const entry: SheetRow = {};
+    normalizedHeaders.forEach((key, idx) => {
+      entry[key] = row[idx];
+    });
+    return entry;
+  });
+};
+
+const asString = (value: string | number | undefined): string =>
+  value == null ? '' : String(value);
+
+const asNumber = (value: string | number | undefined): number => {
+  if (value == null || value === '') return 0;
+  const num = Number(value);
+  return Number.isNaN(num) ? 0 : num;
+};
+
+const mapSheetRow = (row: SheetRow): GoogleSheetRow => ({
+  id: asString(row.id),
+  name: asString(row.name),
+  email: asString(row.email),
+  phone: asString(row.phone),
+  location: asString(row.location),
+  bio: asString(row.bio),
+  profileImage: asString(row.profileimage),
+  rating: asNumber(row.rating),
+  totalBookings: asNumber(row.totalbookings),
+  status: asString(row.status),
+  createdAt: asString(row.createdat),
+  updatedAt: asString(row.updatedat),
+  instagram: asString(row.instagram),
+  twitter: asString(row.twitter),
+  portfolio: asString(row.portfolio),
+  completedProjects: asNumber(row.completedprojects),
+  activeProjects: asNumber(row.activeprojects),
+  reviews: asNumber(row.reviews),
+  earnings: asNumber(row.earnings),
+});
 
 /**
  * Fetch model profile from Google Sheets
@@ -16,8 +108,22 @@ export async function fetchModelProfile(
   modelId: string
 ): Promise<FetchModelResponse> {
   try {
+    if (hasServiceAccountConfig()) {
+      const rows = await fetchRowsFromSheets();
+      const match = rows.find(
+        (row) => String(row.id || '').toLowerCase() === modelId.toLowerCase(),
+      );
+
+      if (!match) {
+        return { success: false, error: 'Model not found in sheet' };
+      }
+
+      const profile = transformSheetRowToProfile(mapSheetRow(match));
+      return { success: true, data: profile };
+    }
+
     const scriptUrl = process.env.GOOGLE_SHEET_APP_SCRIPT_URL;
-    
+
     if (!scriptUrl) {
       return {
         success: false,
@@ -25,7 +131,6 @@ export async function fetchModelProfile(
       };
     }
 
-    // Call Google Apps Script web app
     const response = await fetch(scriptUrl, {
       method: 'POST',
       headers: {
@@ -68,8 +173,14 @@ export async function fetchModelProfile(
  */
 export async function fetchAllModels(): Promise<FetchModelResponse> {
   try {
+    if (hasServiceAccountConfig()) {
+      const rows = await fetchRowsFromSheets();
+      const profiles = rows.map((row) => transformSheetRowToProfile(mapSheetRow(row)));
+      return { success: true, data: profiles };
+    }
+
     const scriptUrl = process.env.GOOGLE_SHEET_APP_SCRIPT_URL;
-    
+
     if (!scriptUrl) {
       return {
         success: false,

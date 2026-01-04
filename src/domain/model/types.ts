@@ -30,7 +30,7 @@ export interface ModelProfile {
 }
 
 export interface GoogleSheetRow {
-  [key: string]: string | number | boolean;
+  [key: string]: string | number | boolean | undefined;
 }
 
 export interface FetchModelResponse {
