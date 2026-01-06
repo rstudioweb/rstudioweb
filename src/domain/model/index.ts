@@ -5,4 +5,10 @@
 
 export * from './types';
 export * from './schemas';
-export { fetchModelProfile, fetchAllModels, transformSheetRowToProfile } from './services';
+export {
+	fetchModelProfile,
+	fetchAllModels,
+	updateModelProfile,
+	transformSheetRowToProfile,
+	addModel,
+} from './services';
