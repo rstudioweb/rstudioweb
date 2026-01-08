@@ -28,13 +28,18 @@ export default function ModelPage() {
   const [monthlyDue, setMonthlyDue] = useState<number>(0);
   const [remainingDays, setRemainingDays] = useState<number>(0);
   const [totalWorkingDays, setTotalWorkingDays] = useState<number>(0);
-  const [deviceInfo] = useState(() => generateDeviceFingerprint());
+  const [deviceInfo, setDeviceInfo] = useState<{ deviceId: string; deviceName: string } | null>(null);
   const [todayTotalSeconds, setTodayTotalSeconds] = useState<number>(0);
   const [dayWiseSessions, setDayWiseSessions] = useState<Array<{ date: string; totalSeconds: number; sessions: any[] }>>([]);
   const [splashImage] = useState(() => {
     const imageNumber = Math.floor(Math.random() * 4) + 1; // Random 1-4
     return `/wlp/${imageNumber}.png`;
   });
+
+  // Generate device fingerprint on client-side only
+  useEffect(() => {
+    setDeviceInfo(generateDeviceFingerprint());
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,23 +71,25 @@ export default function ModelPage() {
         setPassword("");
         loadTodayTarget(data.data.id);
         // Log login session with device info
-        try {
-          const date = getISTDate();
-          const loginAt = getISTTimestamp();
-          await fetch('/api/session', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              type: 'login',
-              modelId: data.data.id,
-              date,
-              loginAt,
-              deviceId: deviceInfo.deviceId,
-              deviceName: deviceInfo.deviceName,
-            }),
-          });
-        } catch (e) {
-          console.warn('Failed to log login session');
+        if (deviceInfo) {
+          try {
+            const date = getISTDate();
+            const loginAt = getISTTimestamp();
+            await fetch('/api/session', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                type: 'login',
+                modelId: data.data.id,
+                date,
+                loginAt,
+                deviceId: deviceInfo.deviceId,
+                deviceName: deviceInfo.deviceName,
+              }),
+            });
+          } catch (e) {
+            console.warn('Failed to log login session');
+          }
         }
       }
     } catch (err) {
@@ -96,22 +103,24 @@ export default function ModelPage() {
 
   const handleLogout = async () => {
     // Log logout session with device info
-    try {
-      const date = getISTDate();
-      const logoutAt = getISTTimestamp();
-      await fetch('/api/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'logout',
-          modelId: model?.id,
-          date,
-          logoutAt,
-          deviceId: deviceInfo.deviceId,
-        }),
-      });
-    } catch (e) {
-      console.warn('Failed to log logout session');
+    if (deviceInfo) {
+      try {
+        const date = getISTDate();
+        const logoutAt = getISTTimestamp();
+        await fetch('/api/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'logout',
+            modelId: model?.id,
+            date,
+            logoutAt,
+            deviceId: deviceInfo.deviceId,
+          }),
+        });
+      } catch (e) {
+        console.warn('Failed to log logout session');
+      }
     }
 
     setIsLoggedIn(false);
@@ -566,7 +575,7 @@ export default function ModelPage() {
         <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold py-2 px-2 rounded-md text-center">
           <div className="text-sm text-purple-100 mb-2">Today's Online Time</div>
           <div className="text-4xl font-mono">{formatSeconds(todayTotalSeconds)}</div>
-          <div className="text-xs text-purple-100 mt-2">{deviceInfo.deviceName}</div>
+          <div className="text-xs text-purple-100 mt-2">{deviceInfo?.deviceName || 'Loading...'}</div>
         </div>
       </div>
 
