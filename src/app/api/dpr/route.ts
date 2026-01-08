@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchAllDPR, addDPR, updateDPR } from '@/domain/dpr';
+import { fetchAllDPR, addDPR, updateDPR, deleteDPR } from '@/domain/dpr';
 
 /**
  * API Route: GET/POST/PUT /api/dpr
@@ -84,6 +84,35 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json(result, { status: 200 });
   } catch (error) {
     console.error('Error in PUT /api/dpr:', error);
+    return NextResponse.json(
+      { success: false, error: 'Internal server error' },
+      { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const modelId = searchParams.get('modelId');
+    const date = searchParams.get('date');
+
+    if (!modelId || !date) {
+      return NextResponse.json(
+        { success: false, error: 'modelId and date are required' },
+        { status: 400 },
+      );
+    }
+
+    const result = await deleteDPR(modelId, date);
+
+    if (!result.success) {
+      return NextResponse.json({ success: false, error: result.error }, { status: 400 });
+    }
+
+    return NextResponse.json(result, { status: 200 });
+  } catch (error) {
+    console.error('Error in DELETE /api/dpr:', error);
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 },

@@ -1,14 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import Image from "next/image";
 import { ModelProfile } from "@/domain/model";
+import { generateDeviceFingerprint } from "@/lib/device-helper";
+import { getISTDate, getISTTimestamp, toISTDateString, formatSeconds } from "@/lib/timezone-helper";
 import MenuIcon from "@mui/icons-material/Menu";
 import LogoutIcon from "@mui/icons-material/Logout";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import styles from "./model.module.css";
 
 export default function ModelPage() {
+  const [showSplash, setShowSplash] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [model, setModel] = useState<ModelProfile | null>(null);
   const [loading, setLoading] = useState(false);
@@ -23,6 +28,13 @@ export default function ModelPage() {
   const [monthlyDue, setMonthlyDue] = useState<number>(0);
   const [remainingDays, setRemainingDays] = useState<number>(0);
   const [totalWorkingDays, setTotalWorkingDays] = useState<number>(0);
+  const [deviceInfo] = useState(() => generateDeviceFingerprint());
+  const [todayTotalSeconds, setTodayTotalSeconds] = useState<number>(0);
+  const [dayWiseSessions, setDayWiseSessions] = useState<Array<{ date: string; totalSeconds: number; sessions: any[] }>>([]);
+  const [splashImage] = useState(() => {
+    const imageNumber = Math.floor(Math.random() * 4) + 1; // Random 1-4
+    return `/wlp/${imageNumber}.png`;
+  });
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,6 +65,25 @@ export default function ModelPage() {
         setError(null);
         setPassword("");
         loadTodayTarget(data.data.id);
+        // Log login session with device info
+        try {
+          const date = getISTDate();
+          const loginAt = getISTTimestamp();
+          await fetch('/api/session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'login',
+              modelId: data.data.id,
+              date,
+              loginAt,
+              deviceId: deviceInfo.deviceId,
+              deviceName: deviceInfo.deviceName,
+            }),
+          });
+        } catch (e) {
+          console.warn('Failed to log login session');
+        }
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Login failed";
@@ -63,7 +94,26 @@ export default function ModelPage() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Log logout session with device info
+    try {
+      const date = getISTDate();
+      const logoutAt = getISTTimestamp();
+      await fetch('/api/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'logout',
+          modelId: model?.id,
+          date,
+          logoutAt,
+          deviceId: deviceInfo.deviceId,
+        }),
+      });
+    } catch (e) {
+      console.warn('Failed to log logout session');
+    }
+
     setIsLoggedIn(false);
     setModel(null);
     setUsername("");
@@ -159,6 +209,39 @@ export default function ModelPage() {
     }
   };
 
+  const loadTodaySessions = async (modelId: string) => {
+    try {
+      const date = getISTDate();
+      const res = await fetch(`/api/session?modelId=${modelId}&date=${date}`);
+      const data = await res.json();
+      if (data.success && data.data) {
+        setTodayTotalSeconds(data.data.totalSeconds || 0);
+      }
+    } catch (err) {
+      console.error('Failed to load today sessions', err);
+    }
+  };
+
+  const loadDayWiseSessions = async (modelId: string) => {
+    try {
+      const sessions = [];
+      // Load last 7 days in IST
+      for (let i = 0; i < 7; i++) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dateStr = toISTDateString(date);
+        const res = await fetch(`/api/session?modelId=${modelId}&date=${dateStr}`);
+        const data = await res.json();
+        if (data.success && data.data) {
+          sessions.push(data.data);
+        }
+      }
+      setDayWiseSessions(sessions.filter(s => s));
+    } catch (err) {
+      console.error('Failed to load day wise sessions', err);
+    }
+  };
+
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return "Good Morning";
@@ -197,12 +280,64 @@ export default function ModelPage() {
     setIsRefreshing(true);
     try {
       await loadTodayTarget(model.id);
+      await loadTodaySessions(model.id);
     } catch (err) {
       console.error("Failed to refresh dashboard", err);
     } finally {
       setIsRefreshing(false);
     }
   };
+
+  // App/tab close: send logout via Beacon when logged-in
+  useEffect(() => {
+    if (!isLoggedIn || !model?.id) return;
+
+    const sendLogoutBeacon = () => {
+      try {
+        const date = getISTDate();
+        const logoutAt = getISTTimestamp();
+        const payload = JSON.stringify({
+          type: 'logout',
+          modelId: model.id,
+          date,
+          logoutAt,
+        });
+        if (navigator.sendBeacon) {
+          const blob = new Blob([payload], { type: 'application/json' });
+          navigator.sendBeacon('/api/session', blob);
+        } else {
+          fetch('/api/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload });
+        }
+      } catch {}
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') sendLogoutBeacon();
+    };
+    const onBeforeUnload = () => {
+      sendLogoutBeacon();
+    };
+
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('beforeunload', onBeforeUnload);
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('beforeunload', onBeforeUnload);
+    };
+  }, [isLoggedIn, model?.id]);
+
+  // Refresh session data every minute when logged in
+  useEffect(() => {
+    if (!isLoggedIn || !model?.id) return;
+    loadTodaySessions(model.id);
+    loadDayWiseSessions(model.id);
+    const interval = setInterval(() => {
+      loadTodaySessions(model.id);
+      loadDayWiseSessions(model.id);
+    }, 60000); // Every minute
+    return () => clearInterval(interval);
+  }, [isLoggedIn, model?.id]);
 
   useEffect(() => {
     const updateClock = () => {
@@ -214,6 +349,15 @@ export default function ModelPage() {
     const timer = setInterval(updateClock, 1000);
 
     return () => clearInterval(timer);
+  }, []);
+
+  // Splash screen timer
+  useEffect(() => {
+    const splashTimer = setTimeout(() => {
+      setShowSplash(false);
+    }, 3500); // Show splash for 3.5 seconds
+
+    return () => clearTimeout(splashTimer);
   }, []);
 
   useEffect(() => {
@@ -228,6 +372,24 @@ export default function ModelPage() {
       return () => clearInterval(autoRefreshInterval);
     }
   }, [isLoggedIn, model?.id]);
+
+  // Splash Screen
+  if (showSplash) {
+    return (
+      <div className={styles.splash}>
+        <Image
+          src={splashImage}
+          alt="Splash background"
+          fill
+          priority
+          quality={75}
+          className={styles.splashBackground}
+          style={{ objectFit: 'cover' }}
+        />
+        <div className={styles.splashText}>R Studio</div>
+      </div>
+    );
+  }
 
   // Login Screen
   if (!isLoggedIn) {
@@ -309,8 +471,13 @@ export default function ModelPage() {
       <div className="relative mb-8">
         <div className="flex justify-between items-start mb-6">
           <div className="flex-1">
-            <p className="text-5xl text-gray-400 font-[family-name:var(--font-italianno)]">{getGreeting()} ...</p>
-            <h1 className="text-5xl text-white font-[family-name:var(--font-italianno)]">
+            <p className={`text-5xl text-gray-400 font-[family-name:var(--font-italianno)] ${styles.wave}`}>
+              {getGreeting()} ...
+            </p>
+            <h1
+              className={`text-5xl text-white font-[family-name:var(--font-italianno)] ${styles.shimmer}`}
+              data-text={getFirstName(model?.name || "")}
+            >
               {getFirstName(model?.name || "")}
             </h1>
           </div>
@@ -328,7 +495,7 @@ export default function ModelPage() {
           )}
         </div>
 
-        <div className="flex items-center gap-4 text-sm text-gray-400 mb-8">
+        <div className="flex items-center gap-4 text-sm text-gray-400 mb-4">
           <span>{currentDate || getCurrentDate()}</span>
           <AccessTimeIcon sx={{ fontSize: 20 }} />
           <span>{currentTime || getCurrentTime()}</span>
@@ -336,14 +503,8 @@ export default function ModelPage() {
       </div>
 
       <div className="bg-red-600 text-white font-bold py-3 px-4 rounded-md mb-8 text-center">
-        <div className="overflow-hidden">
-          <div
-            className="whitespace-nowrap"
-            style={{
-              display: "inline-block",
-              animation: "scroll-left 12s linear infinite",
-            }}
-          >
+        <div className={styles.marquee}>
+          <div className={styles.marqueeContent}>
             YOU HAVE {todayDue} TOKEN DUE FOR TODAY
           </div>
         </div>
@@ -363,7 +524,7 @@ export default function ModelPage() {
         }
       `}</style>
 
-      <div className="mb-8">
+      <div className="mb-4">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-bold">TODAY</h2>
           <button
@@ -400,6 +561,15 @@ export default function ModelPage() {
         </div>
       </div>
 
+      {/* Today's Online Time Widget */}
+      <div className="mb-4">
+        <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold py-2 px-2 rounded-md text-center">
+          <div className="text-sm text-purple-100 mb-2">Today's Online Time</div>
+          <div className="text-4xl font-mono">{formatSeconds(todayTotalSeconds)}</div>
+          <div className="text-xs text-purple-100 mt-2">{deviceInfo.deviceName}</div>
+        </div>
+      </div>
+
       <div>
         <div className="mb-4">
           <h2 className="text-lg font-bold mb-2">MONTHLY</h2>
@@ -424,7 +594,42 @@ export default function ModelPage() {
           </div>
         </div>
 
-        <div className="bg-gray-800 rounded-md p-8 min-h-[200px]"></div>
+        {/* Day-wise Login History - Hidden for now */}
+        {/* 
+        <div className="bg-gray-800 rounded-md p-6">
+          <h3 className="text-lg font-bold mb-4 text-white">Login History (Last 7 Days)</h3>
+          {dayWiseSessions.length > 0 ? (
+            <div className="space-y-4">
+              {dayWiseSessions.map((day, idx) => (
+                <div key={idx} className="bg-gray-900 p-4 rounded-md">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-white font-semibold">{new Date(day.date).toLocaleDateString('en-IN', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                    <span className="text-purple-400 font-bold text-lg">{formatSeconds(day.totalSeconds)}</span>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    {day.sessions && day.sessions.map((session: any, sIdx: number) => (
+                      <div key={sIdx} className="flex justify-between items-center text-gray-300">
+                        <div>
+                          <span className="text-gray-400">#{sIdx + 1}</span>
+                          {session.deviceName && <span className="text-xs ml-2 text-gray-500">({session.deviceName})</span>}
+                        </div>
+                        <div className="text-right">
+                          <div>{new Date(session.loginAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
+                          {session.logoutAt && (
+                            <div className="text-gray-400">→ {new Date(session.logoutAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-400">No login history available</div>
+          )}
+        </div>
+        */}
       </div>
     </div>
   );

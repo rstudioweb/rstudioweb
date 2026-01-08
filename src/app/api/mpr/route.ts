@@ -96,7 +96,10 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const result = await updateMPR(modelId, month, Number(machv), Number(mdue));
+    const result = await updateMPR(modelId, month, {
+      machv: Number(machv),
+      mdue: Number(mdue),
+    });
 
     if (!result.success) {
       return NextResponse.json(

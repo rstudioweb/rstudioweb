@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { ModelProfile } from "@/domain/model";
 import { DPR } from "@/domain/dpr";
 import { MPR } from "@/domain/mpr";
@@ -21,11 +21,13 @@ const getCurrentMonthName = () => {
 
 export default function AdminPage() {
   const [tab, setTab] = useState<"models" | "dpr" | "mpr">("models");
+  const calculationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Models state
   const [models, setModels] = useState<ModelProfile[]>([]);
   const [modelForm, setModelForm] = useState({ id: "", name: "", phone: "", location: "", profileImage: "", status: "", username: "", password: "" });
   const [loading, setLoading] = useState(false);
+  const [formCalculating, setFormCalculating] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [modelCurrentPage, setModelCurrentPage] = useState(1);
   const modelRowsPerPage = 10;
@@ -76,6 +78,15 @@ export default function AdminPage() {
     }
   }, [tab]);
 
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (calculationTimeoutRef.current) {
+        clearTimeout(calculationTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const loadModels = async () => {
     try {
       const res = await fetch("/api/model/list");
@@ -93,7 +104,13 @@ export default function AdminPage() {
       const res = await fetch("/api/dpr");
       const data = await res.json();
       if (data.success && Array.isArray(data.data)) {
-        setDprs(data.data);
+        // Sort by date descending (most recent first)
+        const sorted = data.data.sort((a: DPR, b: DPR) => {
+          const dateA = new Date(a.date).getTime();
+          const dateB = new Date(b.date).getTime();
+          return dateB - dateA;
+        });
+        setDprs(sorted);
       }
     } catch (err) {
       console.error("Failed to load DPR", err);
@@ -103,6 +120,37 @@ export default function AdminPage() {
   const checkExistingDPR = (modelId: string, date: string) => {
     if (!modelId || !date) return null;
     return dprs.find((d) => d.modelId === modelId && d.date === date) || null;
+  };
+
+  const handleDeleteDPR = async (modelId: string, date: string) => {
+    if (!confirm(`Are you sure you want to delete DPR for ${getModelName(modelId)} on ${date}?`)) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/dpr?modelId=${modelId}&date=${date}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMessage("DPR deleted successfully");
+        await loadDPR();
+        
+        // Auto-update MPR after DPR is deleted
+        await updateMPRAfterDPR(modelId);
+        
+        setTimeout(() => setMessage(null), 3000);
+      } else {
+        setMessage(data.error || "Failed to delete DPR");
+        setTimeout(() => setMessage(null), 3000);
+      }
+    } catch (err) {
+      setMessage("An error occurred while deleting DPR");
+      setTimeout(() => setMessage(null), 3000);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const loadMPR = async () => {
@@ -201,21 +249,35 @@ export default function AdminPage() {
 
   const updateMPRAfterDPR = async (modelId: string) => {
     try {
+      // Get current month and year
+      const currentMonth = getCurrentMonthName();
+      const currentYear = new Date().getFullYear();
+      
       // Fetch all DPR records
       const dprRes = await fetch("/api/dpr");
       const dprData = await dprRes.json();
       
       if (!dprData.success || !Array.isArray(dprData.data)) return;
       
-      // Calculate total achievement for this model
-      const modelDPRs = dprData.data.filter((d: DPR) => d.modelId === modelId);
+      // Filter DPR records for this model and current month only
+      const modelDPRs = dprData.data.filter((d: DPR) => {
+        if (d.modelId !== modelId) return false;
+        
+        // Parse the date and check if it's in the current month
+        const dprDate = new Date(d.date);
+        const dprMonth = dprDate.toLocaleString('default', { month: 'long' });
+        const dprYear = dprDate.getFullYear();
+        
+        return dprMonth === currentMonth && dprYear === currentYear;
+      });
+      
+      // Calculate total achievement for this model in current month
       const totalAchievement = modelDPRs.reduce((sum: number, d: DPR) => sum + (d.dachv || 0), 0);
+      
+      console.log(`Updating MPR for ${modelId}: total achievement = ${totalAchievement}`);
       
       // Update the monthly achievement display
       setMprForm({ ...mprForm, modelId: modelId, machv: String(totalAchievement) });
-      
-      // Get current month
-      const currentMonth = getCurrentMonthName();
       
       // Fetch MPR records to find the matching one
       const mprRes = await fetch("/api/mpr");
@@ -230,8 +292,15 @@ export default function AdminPage() {
           // Calculate new mdue
           const newMdue = matchingMPR.mtgt - totalAchievement;
           
-          // Update MPR record
-          await fetch("/api/mpr", {
+          console.log(`Sending MPR update: ${JSON.stringify({
+            modelId,
+            month: currentMonth,
+            machv: totalAchievement,
+            mdue: newMdue,
+          })}`);
+          
+          // Update MPR record in Firestore
+          const updateRes = await fetch("/api/mpr", {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -242,8 +311,13 @@ export default function AdminPage() {
             }),
           });
           
+          const updateData = await updateRes.json();
+          console.log(`MPR update response:`, updateData);
+          
           // Reload MPR to show updated values
           await loadMPR();
+        } else {
+          console.warn(`No matching MPR found for ${modelId} in ${currentMonth}`);
         }
       }
     } catch (err) {
@@ -286,6 +360,7 @@ export default function AdminPage() {
   const calculateMonthlyTotal = async (modelId: string, additionalAchievement: number = 0) => {
     if (!modelId) return;
     
+    setFormCalculating(true);
     try {
       // Fetch DPR data
       const dprRes = await fetch("/api/dpr");
@@ -355,22 +430,10 @@ export default function AdminPage() {
       
       // Set suggested daily target in dprForm
       setDprForm(prev => ({ ...prev, dtarget: String(suggestedDailyTarget) }));
-      
-      // Update MPR in the sheet if record exists
-      if (mtgt > 0) {
-        await fetch("/api/mpr", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            modelId: modelId,
-            month: selectedMonth,
-            machv: totalAchievement,
-            mdue: mdue,
-          }),
-        });
-      }
     } catch (err) {
       console.error("Failed to calculate monthly achievement", err);
+    } finally {
+      setFormCalculating(false);
     }
   };
 
@@ -387,6 +450,7 @@ export default function AdminPage() {
       const currentDay = currentDate.getDate();
       const totalDaysInMonth = getDaysInMonth(mprForm.month, currentYear);
       const remaindays = totalDaysInMonth - currentDay + numberOrZero(mprForm.wkof);
+      const mdue = mprForm.mdue || (numberOrZero(mprForm.mtgt) - numberOrZero(mprForm.machv));
 
       const res = await fetch("/api/mpr", {
         method: "POST",
@@ -396,6 +460,7 @@ export default function AdminPage() {
           month: mprForm.month,
           mtgt: numberOrZero(mprForm.mtgt),
           machv: numberOrZero(mprForm.machv),
+          mdue: numberOrZero(mdue),
           wkof: numberOrZero(mprForm.wkof),
           remaindays: remaindays,
         }),
@@ -403,7 +468,7 @@ export default function AdminPage() {
       const data = await res.json();
       if (data.success) {
         setMessage("MPR added successfully");
-        setMprForm({ modelId: "", month: getCurrentMonthName(), mtgt: "", machv: "", wkof: "" });
+        setMprForm({ modelId: "", month: getCurrentMonthName(), mtgt: "", machv: "", mdue: "", remaindays: "", wkof: "" });
         await loadMPR();
       } else {
         setMessage(data.error || "Failed to add MPR");
@@ -600,7 +665,16 @@ export default function AdminPage() {
       {/* DPR TAB */}
       {tab === "dpr" && (
         <div className="flex flex-col gap-6">
-          <div className="bg-gray-900 p-6 rounded-lg">
+          <div className="bg-gray-900 p-6 rounded-lg relative">
+            {/* Spinner Overlay */}
+            {formCalculating && (
+              <div className="absolute inset-0 bg-gray-900/80 backdrop-blur-sm rounded-lg flex items-center justify-center z-10">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-sm text-gray-300">Calculating...</p>
+                </div>
+              </div>
+            )}
             <h2 className="text-xl font-bold mb-4">Add Daily Performance Report</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
@@ -730,13 +804,22 @@ export default function AdminPage() {
                     placeholder="Enter achieved amount"
                     value={dprForm.dachv}
                     onChange={(e) => {
-                      setDprForm({ ...dprForm, dachv: e.target.value });
-                      // Trigger monthly calculation when achievement value is entered
-                      if (dprForm.modelId && e.target.value !== "") {
-                        calculateMonthlyTotal(dprForm.modelId, numberOrZero(e.target.value));
-                      } else if (dprForm.modelId) {
-                        calculateMonthlyTotal(dprForm.modelId, 0);
+                      const value = e.target.value;
+                      setDprForm({ ...dprForm, dachv: value });
+                      
+                      // Clear previous timeout
+                      if (calculationTimeoutRef.current) {
+                        clearTimeout(calculationTimeoutRef.current);
                       }
+                      
+                      // Set new timeout to trigger calculation after user stops typing
+                      calculationTimeoutRef.current = setTimeout(() => {
+                        if (dprForm.modelId && value !== "") {
+                          calculateMonthlyTotal(dprForm.modelId, numberOrZero(value));
+                        } else if (dprForm.modelId) {
+                          calculateMonthlyTotal(dprForm.modelId, 0);
+                        }
+                      }, 800); // Wait 800ms after user stops typing
                     }}
                   />
                 </div>
@@ -776,57 +859,76 @@ export default function AdminPage() {
           {/* DPR Table */}
           <div className="bg-gray-900 p-6 rounded-lg overflow-x-auto">
             <h2 className="text-xl font-bold mb-4">Daily Performance Report</h2>
-            {dprs.length > 0 ? (
-              <>
-                <table className="w-full text-sm text-left">
-                  <thead className="bg-gray-800 border-b border-gray-700">
-                    <tr>
-                      <th className="px-4 py-2">Model ID</th>
-                      <th className="px-4 py-2">Model Name</th>
-                      <th className="px-4 py-2">Date</th>
-                      <th className="px-4 py-2">D Target</th>
-                      <th className="px-4 py-2">D Achieved</th>
-                      <th className="px-4 py-2">D Due</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {dprs
-                      .slice((dprCurrentPage - 1) * dprRowsPerPage, dprCurrentPage * dprRowsPerPage)
-                      .map((d, i) => (
-                        <tr key={i} className="border-b border-gray-700 hover:bg-gray-800">
-                          <td className="px-4 py-2">{d.modelId}</td>
-                          <td className="px-4 py-2">{getModelName(d.modelId)}</td>
-                          <td className="px-4 py-2">{d.date}</td>
-                          <td className="px-4 py-2">{d.dtarget}</td>
-                          <td className="px-4 py-2">{d.dachv}</td>
-                          <td className="px-4 py-2">{d.ddue || d.dtarget - d.dachv}</td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-                <div className="flex items-center justify-between mt-4">
-                  <button
-                    onClick={() => setDprCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={dprCurrentPage === 1}
-                    className="px-4 py-2 rounded-md bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-600"
-                  >
-                    Previous
-                  </button>
-                  <span className="text-gray-300">
-                    Page {dprCurrentPage} of {Math.ceil(dprs.length / dprRowsPerPage)}
-                  </span>
-                  <button
-                    onClick={() => setDprCurrentPage(prev => Math.min(Math.ceil(dprs.length / dprRowsPerPage), prev + 1))}
-                    disabled={dprCurrentPage >= Math.ceil(dprs.length / dprRowsPerPage)}
-                    className="px-4 py-2 rounded-md bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-600"
-                  >
-                    Next
-                  </button>
-                </div>
-              </>
-            ) : (
-              <p className="text-gray-400">No DPR records found</p>
-            )}
+            {(() => {
+              // Filter DPR records by selected model
+              const filteredDprs = dprForm.modelId 
+                ? dprs.filter(d => d.modelId === dprForm.modelId)
+                : dprs;
+              
+              return filteredDprs.length > 0 ? (
+                <>
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-gray-800 border-b border-gray-700">
+                      <tr>
+                        <th className="px-4 py-2">Model ID</th>
+                        <th className="px-4 py-2">Model Name</th>
+                        <th className="px-4 py-2">Date</th>
+                        <th className="px-4 py-2">D Target</th>
+                        <th className="px-4 py-2">D Achieved</th>
+                        <th className="px-4 py-2">D Due</th>
+                        <th className="px-4 py-2">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredDprs
+                        .slice((dprCurrentPage - 1) * dprRowsPerPage, dprCurrentPage * dprRowsPerPage)
+                        .map((d, i) => (
+                          <tr key={i} className="border-b border-gray-700 hover:bg-gray-800">
+                            <td className="px-4 py-2">{d.modelId}</td>
+                            <td className="px-4 py-2">{getModelName(d.modelId)}</td>
+                            <td className="px-4 py-2">{d.date}</td>
+                            <td className="px-4 py-2">{d.dtarget}</td>
+                            <td className="px-4 py-2">{d.dachv}</td>
+                            <td className="px-4 py-2">{d.ddue || d.dtarget - d.dachv}</td>
+                            <td className="px-4 py-2">
+                              <button
+                                onClick={() => handleDeleteDPR(d.modelId, d.date)}
+                                disabled={loading}
+                                className="px-3 py-1 rounded-md bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-sm"
+                              >
+                                Delete
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                  <div className="flex items-center justify-between mt-4">
+                    <button
+                      onClick={() => setDprCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={dprCurrentPage === 1}
+                      className="px-4 py-2 rounded-md bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-600"
+                    >
+                      Previous
+                    </button>
+                    <span className="text-gray-300">
+                      Page {dprCurrentPage} of {Math.ceil(filteredDprs.length / dprRowsPerPage)}
+                    </span>
+                    <button
+                      onClick={() => setDprCurrentPage(prev => Math.min(Math.ceil(filteredDprs.length / dprRowsPerPage), prev + 1))}
+                      disabled={dprCurrentPage >= Math.ceil(filteredDprs.length / dprRowsPerPage)}
+                      className="px-4 py-2 rounded-md bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-600"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <p className="text-gray-400">
+                  {dprForm.modelId ? 'No DPR records found for selected model' : 'No DPR records found'}
+                </p>
+              );
+            })()}
           </div>
         </div>
       )}
@@ -900,12 +1002,13 @@ export default function AdminPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm text-gray-300">Monthly Due (Auto)</label>
+                  <label className="text-sm text-gray-300">Monthly Due (mdue)</label>
                   <input
                     type="number"
-                    className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2 text-white bg-gray-700"
-                    disabled
-                    value={Math.max(0, numberOrZero(mprForm.mtgt) - numberOrZero(mprForm.machv))}
+                    className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2 text-white"
+                    placeholder="Monthly target - monthly achieved"
+                    value={mprForm.mdue}
+                    onChange={(e) => setMprForm({ ...mprForm, mdue: e.target.value })}
                   />
                 </div>
                 <div>
