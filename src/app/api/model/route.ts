@@ -36,7 +36,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const model = result.data?.find(m => m.id === modelId);
+    const models = Array.isArray(result.data) ? result.data : [];
+    const model = models.find(m => m.id === modelId);
     
     if (!model) {
       return NextResponse.json(
