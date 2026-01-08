@@ -24,9 +24,11 @@ export default function AdminPage() {
   
   // Models state
   const [models, setModels] = useState<ModelProfile[]>([]);
-  const [modelForm, setModelForm] = useState({ id: "", name: "", phone: "", location: "", profileImage: "", status: "" });
+  const [modelForm, setModelForm] = useState({ id: "", name: "", phone: "", location: "", profileImage: "", status: "", username: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [modelCurrentPage, setModelCurrentPage] = useState(1);
+  const modelRowsPerPage = 10;
 
   // DPR state
   const [dprs, setDprs] = useState<DPR[]>([]);
@@ -36,6 +38,9 @@ export default function AdminPage() {
     dtarget: "", 
     dachv: "" 
   });
+  const [dprCurrentPage, setDprCurrentPage] = useState(1);
+  const [isEditingDPR, setIsEditingDPR] = useState(false);
+  const dprRowsPerPage = 10;
 
   // MPR state
   const [mprs, setMprs] = useState<MPR[]>([]);
@@ -59,6 +64,7 @@ export default function AdminPage() {
     if (tab === "dpr") {
       loadDPR();
       loadModels(); // Load models for dropdown
+      loadMPR(); // Load MPR to pick up wkof when calculating remaining days
     }
   }, [tab]);
 
@@ -92,6 +98,11 @@ export default function AdminPage() {
     } catch (err) {
       console.error("Failed to load DPR", err);
     }
+  };
+
+  const checkExistingDPR = (modelId: string, date: string) => {
+    if (!modelId || !date) return null;
+    return dprs.find((d) => d.modelId === modelId && d.date === date) || null;
   };
 
   const loadMPR = async () => {
@@ -134,7 +145,7 @@ export default function AdminPage() {
       const data = await res.json();
       if (data.success) {
         setMessage("Model added successfully");
-        setModelForm({ id: "", name: "", phone: "", location: "", profileImage: "", status: "" });
+        setModelForm({ id: "", name: "", phone: "", location: "", profileImage: "", status: "", username: "", password: "" });
         await loadModels();
       } else {
         setMessage(data.error || "Failed to add model");
@@ -154,8 +165,11 @@ export default function AdminPage() {
     setLoading(true);
     setMessage(null);
     try {
-      const res = await fetch("/api/dpr", {
-        method: "POST",
+      const endpoint = isEditingDPR ? "/api/dpr" : "/api/dpr";
+      const method = isEditingDPR ? "PUT" : "POST";
+      
+      const res = await fetch(endpoint, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           modelId: dprForm.modelId,
@@ -166,19 +180,20 @@ export default function AdminPage() {
       });
       const data = await res.json();
       if (data.success) {
-        setMessage("DPR added successfully");
-        const savedModelId = dprForm.modelId; // Save before reset
+        setMessage(isEditingDPR ? "DPR updated successfully" : "DPR added successfully");
+        const savedModelId = dprForm.modelId;
         setDprForm({ modelId: "", date: new Date().toISOString().split('T')[0], dtarget: "", dachv: "" });
         setMprForm({ modelId: "", month: getCurrentMonthName(), mtgt: "", machv: "", mdue: "", remaindays: "", wkof: "" });
+        setIsEditingDPR(false);
         await loadDPR();
         
-        // Auto-update MPR after DPR is added
+        // Auto-update MPR after DPR is added/updated
         await updateMPRAfterDPR(savedModelId);
       } else {
-        setMessage(data.error || "Failed to add DPR");
+        setMessage(data.error || "Failed to save DPR");
       }
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Add failed");
+      setMessage(err instanceof Error ? err.message : "Save failed");
     } finally {
       setLoading(false);
     }
@@ -237,6 +252,37 @@ export default function AdminPage() {
     }
   };
 
+  const getModelName = (modelId: string) => {
+    const match = models.find((m) => m.id === modelId);
+    return match?.name || "-";
+  };
+
+  const recalculateRemainingDays = (dateValue?: string, modelId?: string) => {
+    // Only calculate if both date and model are provided
+    if (!dateValue || !modelId) return;
+
+    const baseDate = new Date(dateValue);
+    if (Number.isNaN(baseDate.getTime())) return;
+
+    const monthName = baseDate.toLocaleString("default", { month: "long" });
+    const year = baseDate.getFullYear();
+    const dayOfMonth = baseDate.getDate();
+    const totalDays = getDaysInMonth(monthName, year);
+
+    // Fetch wkof from MPR for this model and month
+    const matchedMPR = mprs.find((m) => m.modelId === modelId && m.month === monthName);
+    const wkof = matchedMPR ? numberOrZero(matchedMPR.wkof) : 0;
+
+    // Calculate remaining = totalDays - wkof - dayOfMonth
+    const remaining = Math.max(0, totalDays - wkof - dayOfMonth);
+
+    setMprForm((prev) => ({
+      ...prev,
+      wkof: String(wkof),
+      remaindays: String(remaining),
+    }));
+  };
+
   const calculateMonthlyTotal = async (modelId: string, additionalAchievement: number = 0) => {
     if (!modelId) return;
     
@@ -257,11 +303,17 @@ export default function AdminPage() {
       
       let mtgt = 0;
       let wkof = 0;
-      const currentMonth = getCurrentMonthName();
+      let selectedMonth = getCurrentMonthName();
+      
+      // Use selected date if available to get correct month
+      if (dprForm.date) {
+        const selectedDate = new Date(dprForm.date);
+        selectedMonth = selectedDate.toLocaleString("default", { month: "long" });
+      }
       
       if (mprData.success && Array.isArray(mprData.data)) {
         const matchingMPR = mprData.data.find((m: MPR) => 
-          m.modelId === modelId && m.month === currentMonth
+          m.modelId === modelId && m.month === selectedMonth
         );
         if (matchingMPR) {
           mtgt = matchingMPR.mtgt || 0;
@@ -272,12 +324,22 @@ export default function AdminPage() {
       // Calculate mdue
       const mdue = Math.max(0, mtgt - totalAchievement);
       
-      // Calculate remaining days: days in month - (wkof + current day)
-      const currentDate = new Date();
-      const currentYear = currentDate.getFullYear();
-      const currentDay = currentDate.getDate();
-      const totalDaysInMonth = getDaysInMonth(currentMonth, currentYear);
-      const remaindays = Math.max(0, totalDaysInMonth - (wkof + currentDay));
+      // Calculate remaining days using selected date
+      let remaindays = 0;
+      if (dprForm.date) {
+        const selectedDate = new Date(dprForm.date);
+        const selectedYear = selectedDate.getFullYear();
+        const selectedDay = selectedDate.getDate();
+        const totalDaysInMonth = getDaysInMonth(selectedMonth, selectedYear);
+        remaindays = Math.max(0, totalDaysInMonth - (wkof + selectedDay));
+      } else {
+        // Fallback to current date if no date selected
+        const currentDate = new Date();
+        const currentYear = currentDate.getFullYear();
+        const currentDay = currentDate.getDate();
+        const totalDaysInMonth = getDaysInMonth(selectedMonth, currentYear);
+        remaindays = Math.max(0, totalDaysInMonth - (wkof + currentDay));
+      }
       
       // Calculate suggested daily target: mdue / remaindays
       const suggestedDailyTarget = remaindays > 0 ? Math.round(mdue / remaindays) : 0;
@@ -301,7 +363,7 @@ export default function AdminPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             modelId: modelId,
-            month: currentMonth,
+            month: selectedMonth,
             machv: totalAchievement,
             mdue: mdue,
           }),
@@ -445,6 +507,26 @@ export default function AdminPage() {
                   <option value="Pending">Pending</option>
                 </select>
               </div>
+              <div>
+                <label className="text-sm text-gray-300">Username</label>
+                <input
+                  type="text"
+                  className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2 text-white"
+                  value={modelForm.username}
+                  onChange={(e) => setModelForm({ ...modelForm, username: e.target.value })}
+                  placeholder="Enter username for login"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-gray-300">Password</label>
+                <input
+                  type="password"
+                  className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2 text-white"
+                  value={modelForm.password}
+                  onChange={(e) => setModelForm({ ...modelForm, password: e.target.value })}
+                  placeholder="Enter password for login"
+                />
+              </div>
             </div>
             <button
               onClick={handleAddModel}
@@ -459,28 +541,55 @@ export default function AdminPage() {
           <div className="bg-gray-900 p-6 rounded-lg overflow-x-auto">
             <h2 className="text-xl font-bold mb-4">All Models</h2>
             {models.length > 0 ? (
-              <table className="w-full text-sm text-left">
-                <thead className="bg-gray-800 border-b border-gray-700">
-                  <tr>
-                    <th className="px-4 py-2">ID</th>
-                    <th className="px-4 py-2">Name</th>
-                    <th className="px-4 py-2">Phone</th>
-                    <th className="px-4 py-2">Location</th>
-                    <th className="px-4 py-2">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {models.map((m, idx) => (
-                    <tr key={m.id || `model-${idx}`} className="border-b border-gray-700 hover:bg-gray-800">
-                      <td className="px-4 py-2">{m.id}</td>
-                      <td className="px-4 py-2">{m.name}</td>
-                      <td className="px-4 py-2">{m.phone}</td>
-                      <td className="px-4 py-2">{m.location}</td>
-                      <td className="px-4 py-2 capitalize">{String(m.status || '').toLowerCase()}</td>
+              <>
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-gray-800 border-b border-gray-700">
+                    <tr>
+                      <th className="px-4 py-2">ID</th>
+                      <th className="px-4 py-2">Name</th>
+                      <th className="px-4 py-2">Phone</th>
+                      <th className="px-4 py-2">Location</th>
+                      <th className="px-4 py-2">Username</th>
+                      <th className="px-4 py-2">Password</th>
+                      <th className="px-4 py-2">Status</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {models
+                      .slice((modelCurrentPage - 1) * modelRowsPerPage, modelCurrentPage * modelRowsPerPage)
+                      .map((m, idx) => (
+                        <tr key={m.id || `model-${idx}`} className="border-b border-gray-700 hover:bg-gray-800">
+                          <td className="px-4 py-2">{m.id}</td>
+                          <td className="px-4 py-2">{m.name}</td>
+                          <td className="px-4 py-2">{m.phone}</td>
+                          <td className="px-4 py-2">{m.location}</td>
+                          <td className="px-4 py-2">{m.username || '-'}</td>
+                          <td className="px-4 py-2">{m.password || '-'}</td>
+                          <td className="px-4 py-2 capitalize">{String(m.status || '').toLowerCase()}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+                <div className="flex items-center justify-between mt-4">
+                  <button
+                    onClick={() => setModelCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={modelCurrentPage === 1}
+                    className="px-4 py-2 rounded-md bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-600"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-gray-300">
+                    Page {modelCurrentPage} of {Math.ceil(models.length / modelRowsPerPage)}
+                  </span>
+                  <button
+                    onClick={() => setModelCurrentPage(prev => Math.min(Math.ceil(models.length / modelRowsPerPage), prev + 1))}
+                    disabled={modelCurrentPage >= Math.ceil(models.length / modelRowsPerPage)}
+                    className="px-4 py-2 rounded-md bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-600"
+                  >
+                    Next
+                  </button>
+                </div>
+              </>
             ) : (
               <p className="text-gray-400">No models found</p>
             )}
@@ -503,6 +612,21 @@ export default function AdminPage() {
                     const modelId = e.target.value;
                     setDprForm({ ...dprForm, modelId });
                     setMprForm({ ...mprForm, modelId: modelId, machv: "" });
+                    recalculateRemainingDays(dprForm.date, modelId);
+                    
+                    // Check for existing DPR
+                    const existing = checkExistingDPR(modelId, dprForm.date);
+                    if (existing) {
+                      setDprForm(prev => ({
+                        ...prev,
+                        modelId,
+                        dtarget: String(existing.dtarget),
+                        dachv: String(existing.dachv),
+                      }));
+                      setIsEditingDPR(true);
+                    } else {
+                      setIsEditingDPR(false);
+                    }
                   }}
                 >
                   <option value="">Choose a model</option>
@@ -519,7 +643,26 @@ export default function AdminPage() {
                   type="date"
                   className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2 text-white"
                   value={dprForm.date}
-                  onChange={(e) => setDprForm({ ...dprForm, date: e.target.value })}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setDprForm({ ...dprForm, date: value });
+                    recalculateRemainingDays(value, dprForm.modelId);
+                    
+                    // Check for existing DPR
+                    const existing = checkExistingDPR(dprForm.modelId, value);
+                    if (existing) {
+                      setDprForm(prev => ({
+                        ...prev,
+                        date: value,
+                        dtarget: String(existing.dtarget),
+                        dachv: String(existing.dachv),
+                      }));
+                      setIsEditingDPR(true);
+                    } else {
+                      setDprForm(prev => ({ ...prev, date: value, dtarget: "", dachv: "" }));
+                      setIsEditingDPR(false);
+                    }
+                  }}
                 />
               </div>
               <div className="md:col-span-2">
@@ -560,7 +703,7 @@ export default function AdminPage() {
                   className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2 text-white bg-gray-700"
                   placeholder="Days left in month"
                   value={mprForm.remaindays}
-                  readOnly
+                  onChange={(e) => setMprForm({ ...mprForm, remaindays: e.target.value })}
                 />
               </div>
             </div>
@@ -612,38 +755,75 @@ export default function AdminPage() {
             <button
               onClick={handleAddDPR}
               disabled={loading}
-              className="px-4 py-2 rounded-md bg-green-600 hover:bg-green-700 disabled:bg-gray-600"
+              className="px-4 py-2 rounded-md bg-green-600 hover:bg-green-700 disabled:bg-gray-600 mr-2"
             >
-              {loading ? "Adding..." : "Add DPR"}
+              {loading ? (isEditingDPR ? "Updating..." : "Adding...") : (isEditingDPR ? "Update DPR" : "Add DPR")}
             </button>
+            {isEditingDPR && (
+              <button
+                onClick={() => {
+                  setDprForm({ modelId: "", date: new Date().toISOString().split('T')[0], dtarget: "", dachv: "" });
+                  setIsEditingDPR(false);
+                }}
+                disabled={loading}
+                className="px-4 py-2 rounded-md bg-gray-600 hover:bg-gray-700 disabled:bg-gray-600"
+              >
+                Clear
+              </button>
+            )}
           </div>
 
           {/* DPR Table */}
           <div className="bg-gray-900 p-6 rounded-lg overflow-x-auto">
             <h2 className="text-xl font-bold mb-4">Daily Performance Report</h2>
             {dprs.length > 0 ? (
-              <table className="w-full text-sm text-left">
-                <thead className="bg-gray-800 border-b border-gray-700">
-                  <tr>
-                    <th className="px-4 py-2">Model ID</th>
-                    <th className="px-4 py-2">Date</th>
-                    <th className="px-4 py-2">D Target</th>
-                    <th className="px-4 py-2">D Achieved</th>
-                    <th className="px-4 py-2">D Due</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {dprs.map((d, i) => (
-                    <tr key={i} className="border-b border-gray-700 hover:bg-gray-800">
-                      <td className="px-4 py-2">{d.modelId}</td>
-                      <td className="px-4 py-2">{d.date}</td>
-                      <td className="px-4 py-2">{d.dtarget}</td>
-                      <td className="px-4 py-2">{d.dachv}</td>
-                      <td className="px-4 py-2">{d.ddue || d.dtarget - d.dachv}</td>
+              <>
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-gray-800 border-b border-gray-700">
+                    <tr>
+                      <th className="px-4 py-2">Model ID</th>
+                      <th className="px-4 py-2">Model Name</th>
+                      <th className="px-4 py-2">Date</th>
+                      <th className="px-4 py-2">D Target</th>
+                      <th className="px-4 py-2">D Achieved</th>
+                      <th className="px-4 py-2">D Due</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {dprs
+                      .slice((dprCurrentPage - 1) * dprRowsPerPage, dprCurrentPage * dprRowsPerPage)
+                      .map((d, i) => (
+                        <tr key={i} className="border-b border-gray-700 hover:bg-gray-800">
+                          <td className="px-4 py-2">{d.modelId}</td>
+                          <td className="px-4 py-2">{getModelName(d.modelId)}</td>
+                          <td className="px-4 py-2">{d.date}</td>
+                          <td className="px-4 py-2">{d.dtarget}</td>
+                          <td className="px-4 py-2">{d.dachv}</td>
+                          <td className="px-4 py-2">{d.ddue || d.dtarget - d.dachv}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+                <div className="flex items-center justify-between mt-4">
+                  <button
+                    onClick={() => setDprCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={dprCurrentPage === 1}
+                    className="px-4 py-2 rounded-md bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-600"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-gray-300">
+                    Page {dprCurrentPage} of {Math.ceil(dprs.length / dprRowsPerPage)}
+                  </span>
+                  <button
+                    onClick={() => setDprCurrentPage(prev => Math.min(Math.ceil(dprs.length / dprRowsPerPage), prev + 1))}
+                    disabled={dprCurrentPage >= Math.ceil(dprs.length / dprRowsPerPage)}
+                    className="px-4 py-2 rounded-md bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-600"
+                  >
+                    Next
+                  </button>
+                </div>
+              </>
             ) : (
               <p className="text-gray-400">No DPR records found</p>
             )}
@@ -748,9 +928,7 @@ export default function AdminPage() {
                     disabled
                     value={
                       mprForm.month
-                        ? getDaysInMonth(mprForm.month, new Date().getFullYear()) -
-                          new Date().getDate() +
-                          numberOrZero(mprForm.wkof)
+                        ? Math.max(0, getDaysInMonth(mprForm.month, new Date().getFullYear()) - numberOrZero(mprForm.wkof))
                         : 0
                     }
                   />
@@ -775,6 +953,7 @@ export default function AdminPage() {
                 <thead className="bg-gray-800 border-b border-gray-700">
                   <tr>
                     <th className="px-4 py-2">Model ID</th>
+                    <th className="px-4 py-2">Model Name</th>
                     <th className="px-4 py-2">Month</th>
                     <th className="px-4 py-2">Target</th>
                     <th className="px-4 py-2">Achieved</th>
@@ -787,6 +966,7 @@ export default function AdminPage() {
                   {mprs.map((m, i) => (
                     <tr key={i} className="border-b border-gray-700 hover:bg-gray-800">
                       <td className="px-4 py-2">{m.modelId}</td>
+                      <td className="px-4 py-2">{getModelName(m.modelId)}</td>
                       <td className="px-4 py-2">{m.month}</td>
                       <td className="px-4 py-2">{m.mtgt}</td>
                       <td className="px-4 py-2">{m.machv}</td>

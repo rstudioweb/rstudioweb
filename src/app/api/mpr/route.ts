@@ -3,10 +3,13 @@ import { fetchAllMPR, addMPR, updateMPR } from '@/domain/mpr';
 
 /**
  * API Route: GET /api/mpr
- * Fetches all monthly performance reports
+ * Fetches monthly performance reports (optionally filtered by modelId)
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const modelId = searchParams.get('modelId');
+
     const result = await fetchAllMPR();
     
     if (!result.success) {
@@ -14,6 +17,12 @@ export async function GET() {
         { success: false, error: result.error },
         { status: 500 },
       );
+    }
+
+    // Filter by modelId if provided
+    if (modelId && Array.isArray(result.data)) {
+      const filtered = result.data.filter((m) => m.modelId === modelId);
+      return NextResponse.json({ success: true, data: filtered }, { status: 200 });
     }
 
     return NextResponse.json({ success: true, data: result.data });

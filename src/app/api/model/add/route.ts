@@ -8,7 +8,7 @@ import { addModel } from '@/domain/model';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, name, phone, location, profileImage, status } = body;
+    const { id, name, phone, location, profileImage, status, username, password } = body;
 
     if (!id || !name) {
       return NextResponse.json(
@@ -25,6 +25,8 @@ export async function POST(request: NextRequest) {
       location: location || '',
       profileImage: profileImage || '',
       status: status || 'Pending',
+      username: username || '',
+      password: password || '',
       email: '',
       bio: '',
       rating: 0,

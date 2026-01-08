@@ -109,6 +109,8 @@ const mapSheetRow = (row: SheetRow): GoogleSheetRow => ({
   rating: asNumber(row.rating),
   totalBookings: asNumber(row.totalbookings),
   status: asString(row.status),
+  username: asString(row.username),
+  password: asString(row.password),
   createdAt: asString(row.createdat),
   updatedAt: asString(row.updatedat),
   instagram: asString(row.instagram),
@@ -131,6 +133,8 @@ const modelToSheetFields = (updates: Partial<ModelProfile>): Partial<SheetRow> =
   rating: updates.rating,
   totalbookings: updates.totalBookings,
   status: updates.status,
+  username: updates.username,
+  password: updates.password,
   createdat: updates.createdAt,
   updatedat: updates.updatedAt,
   instagram: updates.socialLinks?.instagram,
@@ -340,6 +344,8 @@ export function transformSheetRowToProfile(row: GoogleSheetRow): ModelProfile {
     rating: Number(row.rating || 0),
     totalBookings: Number(row.totalBookings || 0),
     status: (row.status as 'active' | 'inactive' | 'pending') || 'pending',
+    username: String(row.username || ''),
+    password: String(row.password || ''),
     createdAt: String(row.createdAt || new Date().toISOString()),
     updatedAt: String(row.updatedAt || new Date().toISOString()),
     socialLinks: {
@@ -371,13 +377,15 @@ export async function addModel(
     const sheetName = getSheetNameFromRange(SHEET_RANGE);
 
     // Prepare row data matching the actual sheet column order:
-    // id, name, phone, location, profileImage, status, createdAt, updatedAt
+    // id, name, phone, location, profileImage, username, password, status, createdAt, updatedAt
     const rowData = [
       model.id || '',
       model.name || '',
       model.phone || '',
       model.location || '',
       model.profileImage || '',
+      model.username || '',
+      model.password || '',
       model.status || 'Pending',
       new Date().toISOString(), // createdAt
       new Date().toISOString(), // updatedAt
@@ -385,7 +393,7 @@ export async function addModel(
 
     await sheets.spreadsheets.values.append({
       spreadsheetId,
-      range: `${sheetName}!A:H`,
+      range: `${sheetName}!A:J`,
       valueInputOption: 'RAW',
       requestBody: { values: [rowData] },
     });
@@ -401,6 +409,8 @@ export async function addModel(
       rating: model.rating || 0,
       totalBookings: model.totalBookings || 0,
       status: model.status || 'Pending',
+      username: model.username || '',
+      password: model.password || '',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       socialLinks: { instagram: '', twitter: '', portfolio: '' },

@@ -14,6 +14,8 @@ export interface ModelProfile {
   rating: number;
   totalBookings: number;
   status: 'active' | 'inactive' | 'pending';
+  username?: string;
+  password?: string;
   createdAt: string;
   updatedAt: string;
   socialLinks?: {

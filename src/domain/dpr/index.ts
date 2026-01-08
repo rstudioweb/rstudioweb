@@ -4,4 +4,4 @@
  */
 
 export * from './types';
-export { fetchAllDPR, addDPR } from './services';
+export { fetchAllDPR, addDPR, updateDPR } from './services';
