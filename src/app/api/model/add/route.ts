@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       phone: phone || '',
       location: location || '',
       profileImage: profileImage || '',
-      status: status || 'Pending',
+      status: status || 'pending',
       username: username || '',
       password: password || '',
       email: '',

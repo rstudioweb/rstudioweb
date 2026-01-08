@@ -386,7 +386,7 @@ export async function addModel(
       model.profileImage || '',
       model.username || '',
       model.password || '',
-      model.status || 'Pending',
+      model.status || 'pending',
       new Date().toISOString(), // createdAt
       new Date().toISOString(), // updatedAt
     ];
@@ -408,7 +408,7 @@ export async function addModel(
       profileImage: model.profileImage || '',
       rating: model.rating || 0,
       totalBookings: model.totalBookings || 0,
-      status: model.status || 'Pending',
+      status: model.status || 'pending',
       username: model.username || '',
       password: model.password || '',
       createdAt: new Date().toISOString(),
