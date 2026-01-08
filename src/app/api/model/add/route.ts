@@ -19,7 +19,6 @@ export async function POST(request: NextRequest) {
 
     // Call the service to add model to sheet
     const result = await addModel({
-      id,
       name,
       phone: phone || '',
       location: location || '',

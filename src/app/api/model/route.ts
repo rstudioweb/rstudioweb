@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchModelProfile } from '@/domain/model';
+import { fetchAllModels } from '@/domain/model';
 
 /**
  * API Route: POST /api/model
- * Fetches model profile data from Google Sheets via Apps Script
+ * Fetches model profile data from Firestore
  */
 export async function POST(request: NextRequest) {
   try {
@@ -26,18 +26,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch from domain service (which calls Google Apps Script)
-    const result = await fetchModelProfile(modelId);
+    // Fetch all models and find the one with matching id
+    const result = await fetchAllModels();
 
     if (!result.success) {
       return NextResponse.json(
         { success: false, error: result.error },
+        { status: 500 }
+      );
+    }
+
+    const model = result.data?.find(m => m.id === modelId);
+    
+    if (!model) {
+      return NextResponse.json(
+        { success: false, error: 'Model not found' },
         { status: 404 }
       );
     }
 
     return NextResponse.json(
-      { success: true, data: result.data },
+      { success: true, data: model },
       { status: 200 }
     );
   } catch (error) {

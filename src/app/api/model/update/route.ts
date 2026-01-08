@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { updateModelProfile } from '@/domain/model';
+import { updateModel } from '@/domain/model';
 
 /**
  * API Route: POST /api/model/update
- * Updates a model row in Google Sheets (service account required)
+ * Updates a model in Firestore
  */
 export async function POST(request: NextRequest) {
   try {
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     const updatePayload = (updates || {}) as Record<string, unknown>;
-    const result = await updateModelProfile(modelId, updatePayload);
+    const result = await updateModel(modelId, updatePayload);
 
     if (!result.success) {
       return NextResponse.json({ success: false, error: result.error }, { status: 400 });
