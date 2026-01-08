@@ -42,7 +42,7 @@ export async function fetchAllModels(): Promise<FetchModelResponse> {
   }
 }
 
-export async function addModel(model: Omit<ModelProfile, 'id'>): Promise<FetchModelResponse> {
+export async function addModel(model: Omit<ModelProfile, 'id' | 'createdAt' | 'updatedAt'>): Promise<FetchModelResponse> {
   try {
     const db = getDb();
     const modelsRef = db.collection('models');
