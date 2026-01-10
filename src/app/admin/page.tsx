@@ -205,6 +205,99 @@ export default function AdminPage() {
     }
   };
 
+  const handleEditModel = (model: ModelProfile) => {
+    setModelForm({
+      id: model.id,
+      name: model.name,
+      phone: model.phone || "",
+      location: model.location || "",
+      profileImage: model.profileImage || "",
+      status: model.status || "",
+      username: model.username || "",
+      password: model.password || "",
+    });
+    setTab("models");
+    setModelCurrentPage(1);
+  };
+
+  const handleDeleteModel = async (modelId: string, modelName: string) => {
+    if (!confirm(`Are you sure you want to delete ${modelName}? This action cannot be undone.`)) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/model/delete?id=${modelId}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMessage("Model deleted successfully");
+        await loadModels();
+        setTimeout(() => setMessage(null), 3000);
+      } else {
+        setMessage(data.error || "Failed to delete model");
+        setTimeout(() => setMessage(null), 3000);
+      }
+    } catch (err) {
+      setMessage("An error occurred while deleting model");
+      setTimeout(() => setMessage(null), 3000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateModel = async () => {
+    if (!modelForm.id.trim() || !modelForm.name.trim()) {
+      setMessage("ID and Name are required");
+      return;
+    }
+
+    if (!modelForm.status) {
+      setMessage("Please select a status");
+      return;
+    }
+
+    setLoading(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/model/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          modelId: modelForm.id,
+          updates: modelForm,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMessage("Model updated successfully");
+        setModelForm({ id: "", name: "", phone: "", location: "", profileImage: "", status: "", username: "", password: "" });
+        await loadModels();
+      } else {
+        setMessage(data.error || "Failed to update model");
+      }
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Update failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setModelForm({ id: "", name: "", phone: "", location: "", profileImage: "", status: "", username: "", password: "" });
+  };
+
+  const isEditingModel = modelForm.id && models.some(m => m.id === modelForm.id);
+
+  const handleSaveModel = () => {
+    if (isEditingModel) {
+      handleUpdateModel();
+    } else {
+      handleAddModel();
+    }
+  };
+
   const handleAddDPR = async () => {
     if (!dprForm.modelId || !dprForm.date || !dprForm.dtarget || dprForm.dachv === "") {
       setMessage("All DPR fields are required");
@@ -593,13 +686,24 @@ export default function AdminPage() {
                 />
               </div>
             </div>
-            <button
-              onClick={handleAddModel}
-              disabled={loading}
-              className="px-4 py-2 rounded-md bg-green-600 hover:bg-green-700 disabled:bg-gray-600"
-            >
-              {loading ? "Adding..." : "Add Model"}
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleSaveModel}
+                disabled={loading}
+                className="px-4 py-2 rounded-md bg-green-600 hover:bg-green-700 disabled:bg-gray-600"
+              >
+                {loading ? "Processing..." : isEditingModel ? "Update Model" : "Add Model"}
+              </button>
+              {isEditingModel && (
+                <button
+                  type="button"
+                  onClick={handleCancelEdit}
+                  className="px-4 py-2 rounded-md bg-gray-600 hover:bg-gray-700"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Models Table */}
@@ -617,13 +721,14 @@ export default function AdminPage() {
                       <th className="px-4 py-2">Username</th>
                       <th className="px-4 py-2">Password</th>
                       <th className="px-4 py-2">Status</th>
+                      <th className="px-4 py-2">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {models
                       .slice((modelCurrentPage - 1) * modelRowsPerPage, modelCurrentPage * modelRowsPerPage)
                       .map((m, idx) => (
-                        <tr key={m.id || `model-${idx}`} className="border-b border-gray-700 hover:bg-gray-800">
+                      <tr key={m.id || `model-${idx}`} className="border-b border-gray-700 hover:bg-gray-800">
                           <td className="px-4 py-2">{m.id}</td>
                           <td className="px-4 py-2">{m.name}</td>
                           <td className="px-4 py-2">{m.phone}</td>
@@ -631,6 +736,20 @@ export default function AdminPage() {
                           <td className="px-4 py-2">{m.username || '-'}</td>
                           <td className="px-4 py-2">{m.password || '-'}</td>
                           <td className="px-4 py-2 capitalize">{String(m.status || '').toLowerCase()}</td>
+                          <td className="px-4 py-2 flex gap-2">
+                            <button
+                              onClick={() => handleEditModel(m)}
+                              className="px-3 py-1 rounded-md bg-blue-600 hover:bg-blue-700 text-sm"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteModel(m.id, m.name)}
+                              className="px-3 py-1 rounded-md bg-red-600 hover:bg-red-700 text-sm"
+                            >
+                              Delete
+                            </button>
+                          </td>
                         </tr>
                       ))}
                   </tbody>
