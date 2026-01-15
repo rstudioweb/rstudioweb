@@ -23,9 +23,22 @@ export default function AdminPage() {
   const [tab, setTab] = useState<"models" | "dpr" | "mpr">("models");
   const calculationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
+  // Account Approval state
+  const [accountApprovals, setAccountApprovals] = useState({
+    SM: false,
+    LJ: false,
+    BJ: false,
+    CS: false,
+    XC: false,
+    IL: false,
+  });
+  const [selectedModelId, setSelectedModelId] = useState<string>("");
+  const [selectedModelName, setSelectedModelName] = useState<string>("");
+  
   // Models state
   const [models, setModels] = useState<ModelProfile[]>([]);
   const [modelForm, setModelForm] = useState({ id: "", name: "", phone: "", location: "", profileImage: "", status: "", username: "", password: "" });
+  const [accountForm, setAccountForm] = useState({ email: "", bio: "", rating: "", totalBookings: "" });
   const [loading, setLoading] = useState(false);
   const [formCalculating, setFormCalculating] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -188,12 +201,38 @@ export default function AdminPage() {
       const res = await fetch("/api/model/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(modelForm),
+        body: JSON.stringify({
+          ...modelForm,
+          email: accountForm.email,
+          bio: accountForm.bio,
+          rating: accountForm.rating ? Number(accountForm.rating) : 0,
+          totalBookings: accountForm.totalBookings ? Number(accountForm.totalBookings) : 0,
+        }),
       });
       const data = await res.json();
       if (data.success) {
         setMessage("Model added successfully");
+        
+        // Also save account approvals if any are checked
+        const checkedAccounts = Object.entries(accountApprovals)
+          .filter(([_, isChecked]) => isChecked)
+          .map(([account, _]) => account);
+        
+        if (checkedAccounts.length > 0) {
+          await fetch("/api/accountApproval", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              modelId: modelForm.id,
+              modelName: modelForm.name,
+              accounts: accountApprovals,
+            }),
+          });
+        }
+        
         setModelForm({ id: "", name: "", phone: "", location: "", profileImage: "", status: "", username: "", password: "" });
+        setAccountForm({ email: "", bio: "", rating: "", totalBookings: "" });
+        setAccountApprovals({ SM: false, LJ: false, BJ: false, CS: false, XC: false, IL: false });
         await loadModels();
       } else {
         setMessage(data.error || "Failed to add model");
@@ -205,7 +244,7 @@ export default function AdminPage() {
     }
   };
 
-  const handleEditModel = (model: ModelProfile) => {
+  const handleEditModel = async (model: ModelProfile) => {
     setModelForm({
       id: model.id,
       name: model.name,
@@ -216,8 +255,100 @@ export default function AdminPage() {
       username: model.username || "",
       password: model.password || "",
     });
+    
+    // Load account details
+    setSelectedModelId(model.id);
+    setSelectedModelName(model.name);
+    
+    try {
+      const res = await fetch(`/api/modelAccount?modelId=${model.id}`);
+      const account = await res.json();
+      if (account.success && account.data) {
+        setAccountForm({
+          email: account.data.email || "",
+          bio: account.data.bio || "",
+          rating: account.data.rating ? String(account.data.rating) : "",
+          totalBookings: account.data.totalBookings ? String(account.data.totalBookings) : "",
+        });
+      } else {
+        setAccountForm({ email: "", bio: "", rating: "", totalBookings: "" });
+      }
+    } catch (err) {
+      console.error("Failed to load account details:", err);
+      setAccountForm({ email: "", bio: "", rating: "", totalBookings: "" });
+    }
+    
+    // Load account approvals for this model
+    try {
+      const res = await fetch(`/api/accountApproval?modelId=${model.id}`);
+      const approval = await res.json();
+      if (approval.success && approval.data) {
+        setAccountApprovals({
+          SM: approval.data.approvedAccounts?.includes('SM') || false,
+          LJ: approval.data.approvedAccounts?.includes('LJ') || false,
+          BJ: approval.data.approvedAccounts?.includes('BJ') || false,
+          CS: approval.data.approvedAccounts?.includes('CS') || false,
+          XC: approval.data.approvedAccounts?.includes('XC') || false,
+          IL: approval.data.approvedAccounts?.includes('IL') || false,
+        });
+      } else {
+        // Reset if no approvals found
+        setAccountApprovals({
+          SM: false,
+          LJ: false,
+          BJ: false,
+          CS: false,
+          XC: false,
+          IL: false,
+        });
+      }
+    } catch (err) {
+      console.error("Failed to load account approvals:", err);
+      // Reset on error
+      setAccountApprovals({
+        SM: false,
+        LJ: false,
+        BJ: false,
+        CS: false,
+        XC: false,
+        IL: false,
+      });
+    }
+    
     setTab("models");
     setModelCurrentPage(1);
+  };
+
+  const handleAccountApprovalChange = async (account: keyof typeof accountApprovals, checked: boolean) => {
+    // Update local state
+    const updatedApprovals = { ...accountApprovals, [account]: checked };
+    setAccountApprovals(updatedApprovals);
+
+    // Save to Firestore if a model is selected
+    if (selectedModelId) {
+      try {
+        const res = await fetch("/api/accountApproval", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            modelId: selectedModelId,
+            modelName: selectedModelName,
+            accounts: updatedApprovals,
+          }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          setMessage(`Account approval updated for ${selectedModelName}`);
+          setTimeout(() => setMessage(null), 2000);
+        } else {
+          setMessage(data.error || "Failed to save account approval");
+          setTimeout(() => setMessage(null), 3000);
+        }
+      } catch (err) {
+        setMessage(err instanceof Error ? err.message : "Failed to save account approval");
+        setTimeout(() => setMessage(null), 3000);
+      }
+    }
   };
 
   const handleDeleteModel = async (modelId: string, modelName: string) => {
@@ -266,13 +397,33 @@ export default function AdminPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           modelId: modelForm.id,
-          updates: modelForm,
+          updates: {
+            ...modelForm,
+            email: accountForm.email,
+            bio: accountForm.bio,
+            rating: accountForm.rating ? Number(accountForm.rating) : 0,
+            totalBookings: accountForm.totalBookings ? Number(accountForm.totalBookings) : 0,
+          },
         }),
       });
       const data = await res.json();
       if (data.success) {
         setMessage("Model updated successfully");
+        
+        // Also save account approvals
+        await fetch("/api/accountApproval", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            modelId: modelForm.id,
+            modelName: modelForm.name,
+            accounts: accountApprovals,
+          }),
+        });
+        
         setModelForm({ id: "", name: "", phone: "", location: "", profileImage: "", status: "", username: "", password: "" });
+        setAccountForm({ email: "", bio: "", rating: "", totalBookings: "" });
+        setAccountApprovals({ SM: false, LJ: false, BJ: false, CS: false, XC: false, IL: false });
         await loadModels();
       } else {
         setMessage(data.error || "Failed to update model");
@@ -286,6 +437,7 @@ export default function AdminPage() {
 
   const handleCancelEdit = () => {
     setModelForm({ id: "", name: "", phone: "", location: "", profileImage: "", status: "", username: "", password: "" });
+    setAccountForm({ email: "", bio: "", rating: "", totalBookings: "" });
   };
 
   const isEditingModel = modelForm.id && models.some(m => m.id === modelForm.id);
@@ -603,94 +755,116 @@ export default function AdminPage() {
       {/* MODELS TAB */}
       {tab === "models" && (
         <div className="flex flex-col gap-6">
-          <div className="bg-gray-900 p-6 rounded-lg">
-            <h2 className="text-xl font-bold mb-4">Add New Model</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <label className="text-sm text-gray-300">ID</label>
-                <input
-                  type="text"
-                  className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2 text-white"
-                  value={modelForm.id}
-                  onChange={(e) => setModelForm({ ...modelForm, id: e.target.value })}
-                />
+          {/* Two Column Layout: Add New Model (Left) and Account Approval (Right) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left Column: Add New Model */}
+            <div className="bg-gray-900 p-6 rounded-lg">
+              <h2 className="text-xl font-bold mb-4">Add New Model</h2>
+              <div className="space-y-3">
+                {/* Row 1: ID and Name */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-gray-400 uppercase">ID</label>
+                    <input
+                      type="text"
+                      className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2 text-white text-sm"
+                      value={modelForm.id}
+                      onChange={(e) => setModelForm({ ...modelForm, id: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 uppercase">Name</label>
+                    <input
+                      type="text"
+                      className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2 text-white text-sm"
+                      value={modelForm.name}
+                      onChange={(e) => setModelForm({ ...modelForm, name: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                {/* Row 2: Phone and Location */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-gray-400 uppercase">Phone</label>
+                    <input
+                      type="text"
+                      className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2 text-white text-sm"
+                      value={modelForm.phone}
+                      onChange={(e) => setModelForm({ ...modelForm, phone: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 uppercase">Location</label>
+                    <input
+                      type="text"
+                      className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2 text-white text-sm"
+                      value={modelForm.location}
+                      onChange={(e) => setModelForm({ ...modelForm, location: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                {/* Row 3: Profile Image */}
+                <div>
+                  <label className="text-xs text-gray-400 uppercase">Profile Image URL</label>
+                  <input
+                    type="text"
+                    className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2 text-white text-sm"
+                    value={modelForm.profileImage}
+                    onChange={(e) => setModelForm({ ...modelForm, profileImage: e.target.value })}
+                  />
+                </div>
+
+                {/* Row 4: Username and Status */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-gray-400 uppercase">Username</label>
+                    <input
+                      type="text"
+                      className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2 text-white text-sm"
+                      value={modelForm.username}
+                      onChange={(e) => setModelForm({ ...modelForm, username: e.target.value })}
+                      placeholder="username"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 uppercase">Status</label>
+                    <select
+                      className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2 text-white text-sm"
+                      value={modelForm.status}
+                      onChange={(e) => setModelForm({ ...modelForm, status: e.target.value })}
+                    >
+                      <option value="">Select</option>
+                      <option value="Active">Active</option>
+                      <option value="Suspended">Suspended</option>
+                      <option value="Blocked">Blocked</option>
+                      <option value="Pending">Pending</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Row 5: Password and Dummy */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-gray-400 uppercase">Password</label>
+                    <input
+                      type="password"
+                      className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2 text-white text-sm"
+                      value={modelForm.password}
+                      onChange={(e) => setModelForm({ ...modelForm, password: e.target.value })}
+                      placeholder="password"
+                    />
+                  </div>
+                  <div></div>
+                </div>
               </div>
-              <div>
-                <label className="text-sm text-gray-300">Name</label>
-                <input
-                  type="text"
-                  className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2 text-white"
-                  value={modelForm.name}
-                  onChange={(e) => setModelForm({ ...modelForm, name: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="text-sm text-gray-300">Phone</label>
-                <input
-                  type="text"
-                  className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2 text-white"
-                  value={modelForm.phone}
-                  onChange={(e) => setModelForm({ ...modelForm, phone: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="text-sm text-gray-300">Location</label>
-                <input
-                  type="text"
-                  className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2 text-white"
-                  value={modelForm.location}
-                  onChange={(e) => setModelForm({ ...modelForm, location: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="text-sm text-gray-300">Profile Image URL</label>
-                <input
-                  type="text"
-                  className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2 text-white"
-                  value={modelForm.profileImage}
-                  onChange={(e) => setModelForm({ ...modelForm, profileImage: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="text-sm text-gray-300">Status</label>
-                <select
-                  className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2 text-white"
-                  value={modelForm.status}
-                  onChange={(e) => setModelForm({ ...modelForm, status: e.target.value })}
-                >
-                  <option value="">Set Status</option>
-                  <option value="Active">Active</option>
-                  <option value="Suspended">Suspended</option>
-                  <option value="Blocked">Blocked</option>
-                  <option value="Pending">Pending</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm text-gray-300">Username</label>
-                <input
-                  type="text"
-                  className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2 text-white"
-                  value={modelForm.username}
-                  onChange={(e) => setModelForm({ ...modelForm, username: e.target.value })}
-                  placeholder="Enter username for login"
-                />
-              </div>
-              <div>
-                <label className="text-sm text-gray-300">Password</label>
-                <input
-                  type="password"
-                  className="w-full rounded-md bg-gray-800 border border-gray-700 px-3 py-2 text-white"
-                  value={modelForm.password}
-                  onChange={(e) => setModelForm({ ...modelForm, password: e.target.value })}
-                  placeholder="Enter password for login"
-                />
-              </div>
-            </div>
-            <div className="flex gap-2">
+
+              {/* Button */}
               <button
                 onClick={handleSaveModel}
                 disabled={loading}
-                className="px-4 py-2 rounded-md bg-green-600 hover:bg-green-700 disabled:bg-gray-600"
+                className="w-full mt-4 px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-semibold uppercase text-sm"
               >
                 {loading ? "Processing..." : isEditingModel ? "Update Model" : "Add Model"}
               </button>
@@ -698,13 +872,42 @@ export default function AdminPage() {
                 <button
                   type="button"
                   onClick={handleCancelEdit}
-                  className="px-4 py-2 rounded-md bg-gray-600 hover:bg-gray-700"
+                  className="w-full mt-2 px-4 py-2 rounded-md bg-gray-700 hover:bg-gray-600 text-white font-semibold uppercase text-sm"
                 >
                   Cancel
                 </button>
               )}
             </div>
+
+            {/* Right Column: Account Approval */}
+            <div className="bg-gray-900 p-6 rounded-lg">
+              <h2 className="text-xl font-bold mb-4">Account Approval</h2>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { id: "sm-account", label: "SM ACCOUNT", key: "SM" },
+                  { id: "lj-account", label: "LJ ACCOUNT", key: "LJ" },
+                  { id: "bj-account", label: "BJ ACCOUNT", key: "BJ" },
+                  { id: "cs-account", label: "CS ACCOUNT", key: "CS" },
+                  { id: "xc-account", label: "XC ACCOUNT", key: "XC" },
+                  { id: "il-account", label: "IL ACCOUNT", key: "IL" },
+                ].map((account) => (
+                  <div key={account.id} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id={account.id}
+                      checked={accountApprovals[account.key as keyof typeof accountApprovals]}
+                      onChange={(e) => handleAccountApprovalChange(account.key as keyof typeof accountApprovals, e.target.checked)}
+                      className="w-4 h-4 rounded"
+                    />
+                    <label htmlFor={account.id} className="text-xs text-gray-300 uppercase cursor-pointer">
+                      {account.label}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
+          {/* End of Two Column Layout */}
 
           {/* Models Table */}
           <div className="bg-gray-900 p-6 rounded-lg overflow-x-auto">
