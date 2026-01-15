@@ -858,7 +858,7 @@ class _DashboardViewState extends State<DashboardView>
                                   letterSpacing: 0.5,
                                 ),
                               ),
-                              const SizedBox(height: 12),
+                              const SizedBox(height: 6),
                               if (camSitesController.isLoading)
                                 Center(
                                   child: SizedBox(
@@ -884,68 +884,64 @@ class _DashboardViewState extends State<DashboardView>
                                   ),
                                 )
                               else
-                                SizedBox(
-                                  height: 70,
-                                  child: ListView.builder(
-                                    scrollDirection: Axis.horizontal,
-                                    itemCount:
-                                        camSitesController.camSites.length,
-                                    itemBuilder: (context, index) {
-                                      final site =
-                                          camSitesController.camSites[index];
-                                      final isActive = site.status == 'ACTIVE';
-                                      final statusColor =
-                                          isActive ? Colors.green : Colors.red;
+                                ListView.builder(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: camSitesController.camSites.length,
+                                  itemBuilder: (context, index) {
+                                    final site =
+                                        camSitesController.camSites[index];
+                                    final isActive = site.status == 'ACTIVE';
+                                    final statusColor =
+                                        isActive ? Colors.green : Colors.red;
 
-                                      return Container(
-                                        margin: const EdgeInsets.only(right: 8),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF2A2A2A),
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 8,
-                                        ),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            // Site Code
-                                            Text(
-                                              site.name,
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.bold,
-                                              ),
+                                    return Container(
+                                      margin: const EdgeInsets.only(bottom: 8),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF2A2A2A),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 12,
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          // Site Code
+                                          Text(
+                                            site.name,
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
                                             ),
-                                            const SizedBox(width: 16),
-                                            // Status Text
-                                            Text(
-                                              site.status,
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w500,
-                                              ),
+                                          ),
+                                          const SizedBox(width: 16),
+                                          // Status Text
+                                          Text(
+                                            site.status,
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500,
                                             ),
-                                            const SizedBox(width: 8),
-                                            // Status Indicator
-                                            Container(
-                                              width: 12,
-                                              height: 12,
-                                              decoration: BoxDecoration(
-                                                shape: BoxShape.circle,
-                                                color: statusColor,
-                                              ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          // Status Indicator
+                                          Container(
+                                            width: 12,
+                                            height: 12,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              color: statusColor,
                                             ),
-                                          ],
-                                        ),
-                                      );
-                                    },
-                                  ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
                                 ),
                             ],
                           ),
