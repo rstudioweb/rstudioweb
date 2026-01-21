@@ -38,7 +38,6 @@ export default function AdminPage() {
   // Models state
   const [models, setModels] = useState<ModelProfile[]>([]);
   const [modelForm, setModelForm] = useState({ id: "", name: "", phone: "", location: "", profileImage: "", status: "", username: "", password: "" });
-  const [accountForm, setAccountForm] = useState({ email: "", bio: "", rating: "", totalBookings: "" });
   const [loading, setLoading] = useState(false);
   const [formCalculating, setFormCalculating] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -201,13 +200,7 @@ export default function AdminPage() {
       const res = await fetch("/api/model/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...modelForm,
-          email: accountForm.email,
-          bio: accountForm.bio,
-          rating: accountForm.rating ? Number(accountForm.rating) : 0,
-          totalBookings: accountForm.totalBookings ? Number(accountForm.totalBookings) : 0,
-        }),
+        body: JSON.stringify(modelForm),
       });
       const data = await res.json();
       if (data.success) {
@@ -231,7 +224,6 @@ export default function AdminPage() {
         }
         
         setModelForm({ id: "", name: "", phone: "", location: "", profileImage: "", status: "", username: "", password: "" });
-        setAccountForm({ email: "", bio: "", rating: "", totalBookings: "" });
         setAccountApprovals({ SM: false, LJ: false, BJ: false, CS: false, XC: false, IL: false });
         await loadModels();
       } else {
@@ -259,24 +251,6 @@ export default function AdminPage() {
     // Load account details
     setSelectedModelId(model.id);
     setSelectedModelName(model.name);
-    
-    try {
-      const res = await fetch(`/api/modelAccount?modelId=${model.id}`);
-      const account = await res.json();
-      if (account.success && account.data) {
-        setAccountForm({
-          email: account.data.email || "",
-          bio: account.data.bio || "",
-          rating: account.data.rating ? String(account.data.rating) : "",
-          totalBookings: account.data.totalBookings ? String(account.data.totalBookings) : "",
-        });
-      } else {
-        setAccountForm({ email: "", bio: "", rating: "", totalBookings: "" });
-      }
-    } catch (err) {
-      console.error("Failed to load account details:", err);
-      setAccountForm({ email: "", bio: "", rating: "", totalBookings: "" });
-    }
     
     // Load account approvals for this model
     try {
@@ -397,13 +371,7 @@ export default function AdminPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           modelId: modelForm.id,
-          updates: {
-            ...modelForm,
-            email: accountForm.email,
-            bio: accountForm.bio,
-            rating: accountForm.rating ? Number(accountForm.rating) : 0,
-            totalBookings: accountForm.totalBookings ? Number(accountForm.totalBookings) : 0,
-          },
+          updates: modelForm,
         }),
       });
       const data = await res.json();
@@ -422,7 +390,6 @@ export default function AdminPage() {
         });
         
         setModelForm({ id: "", name: "", phone: "", location: "", profileImage: "", status: "", username: "", password: "" });
-        setAccountForm({ email: "", bio: "", rating: "", totalBookings: "" });
         setAccountApprovals({ SM: false, LJ: false, BJ: false, CS: false, XC: false, IL: false });
         await loadModels();
       } else {
@@ -437,7 +404,6 @@ export default function AdminPage() {
 
   const handleCancelEdit = () => {
     setModelForm({ id: "", name: "", phone: "", location: "", profileImage: "", status: "", username: "", password: "" });
-    setAccountForm({ email: "", bio: "", rating: "", totalBookings: "" });
   };
 
   const isEditingModel = modelForm.id && models.some(m => m.id === modelForm.id);
