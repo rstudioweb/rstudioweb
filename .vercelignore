@@ -1,0 +1,17 @@
+# Flutter app folder
+flutter_model_app/
+
+# Node modules
+node_modules/
+
+# Build outputs
+.next/
+out/
+
+# Development
+.env.local
+.DS_Store
+*.log
+
+# Git
+.git/
