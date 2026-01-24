@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "672487580566",
+    "project_id": "camstudioapp2026",
+    "storage_bucket": "camstudioapp2026.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:672487580566:android:8826ca3cd80f6c2e1bf3b7",
+        "android_client_info": {
+          "package_name": "com.example.model_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDXU1hX5RXV4S30t3OZipRURAEX8iCTh4U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

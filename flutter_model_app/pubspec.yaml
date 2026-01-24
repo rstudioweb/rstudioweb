@@ -16,6 +16,10 @@ dependencies:
   # HTTP & API
   http: ^1.1.2
   
+  # Firebase
+  firebase_core: ^3.8.1
+  firebase_messaging: ^15.1.5
+  
   # Secure Storage
   flutter_secure_storage: ^9.0.0
   
@@ -24,6 +28,9 @@ dependencies:
   
   # Permissions
   permission_handler: ^11.0.1
+  
+  # Local Storage
+  shared_preferences: ^2.2.3
   
   # Date & Time
   intl: ^0.19.0

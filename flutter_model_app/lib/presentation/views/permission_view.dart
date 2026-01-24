@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:io';
+import '../../services/push_service.dart';
 
 class PermissionView extends StatefulWidget {
   const PermissionView({super.key});
@@ -18,18 +20,21 @@ class _PermissionViewState extends State<PermissionView> {
     Permission.camera,
     Permission.microphone,
     Permission.contacts,
+    Permission.notification,
   ];
 
   final Map<Permission, String> _permissionLabels = {
     Permission.camera: 'Camera',
     Permission.microphone: 'Microphone',
     Permission.contacts: 'Contacts',
+    Permission.notification: 'Notifications',
   };
 
   final Map<Permission, IconData> _permissionIcons = {
     Permission.camera: Icons.camera_alt,
     Permission.microphone: Icons.mic,
     Permission.contacts: Icons.contacts,
+    Permission.notification: Icons.notifications,
   };
 
   @override
@@ -51,6 +56,8 @@ class _PermissionViewState extends State<PermissionView> {
     }
 
     if (allGranted && mounted) {
+      final modelId = await const FlutterSecureStorage().read(key: 'modelId');
+      await PushService.init(modelId: modelId);
       Navigator.of(context).pushReplacementNamed('/login');
     } else {
       setState(() {
@@ -80,6 +87,8 @@ class _PermissionViewState extends State<PermissionView> {
         _statusMessage = 'All permissions granted!';
       });
       await Future.delayed(const Duration(milliseconds: 500));
+      final modelId = await const FlutterSecureStorage().read(key: 'modelId');
+      await PushService.init(modelId: modelId);
       if (mounted) {
         Navigator.of(context).pushReplacementNamed('/login');
       }
@@ -273,6 +282,8 @@ class _PermissionViewState extends State<PermissionView> {
         return 'Required for audio streaming';
       case Permission.contacts:
         return 'Required for contact management';
+      case Permission.notification:
+        return 'Required for alerts and updates';
       default:
         return 'Required for app functionality';
     }

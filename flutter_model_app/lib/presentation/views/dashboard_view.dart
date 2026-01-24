@@ -293,6 +293,15 @@ class _DashboardViewState extends State<DashboardView>
                                   );
                                 },
                               ),
+                              IconButton(
+                                icon: Icon(Icons.notifications_active,
+                                    color: Colors.blue),
+                                onPressed: () {
+                                  Navigator.of(context)
+                                      .pushNamed('/notifications');
+                                },
+                                tooltip: 'Notifications',
+                              ),
                             ],
                           ),
                           const SizedBox(height: 20),
