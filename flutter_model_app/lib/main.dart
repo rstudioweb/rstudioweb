@@ -5,6 +5,7 @@ import 'domain/controllers/auth_controller.dart';
 import 'domain/controllers/dashboard_controller.dart';
 import 'domain/controllers/camsites_controller.dart';
 import 'domain/controllers/theme_controller.dart';
+import 'presentation/views/permission_view.dart';
 import 'presentation/views/splash_view.dart';
 import 'presentation/views/login_view.dart';
 import 'presentation/views/dashboard_view.dart';
@@ -35,7 +36,8 @@ class MyApp extends StatelessWidget {
             darkTheme: AppTheme.darkTheme(),
             initialRoute: '/',
             routes: {
-              '/': (context) => const SplashView(),
+              '/': (context) => const PermissionView(),
+              '/splash': (context) => const SplashView(),
               '/login': (context) => const LoginView(),
               '/dashboard': (context) => const DashboardView(),
             },

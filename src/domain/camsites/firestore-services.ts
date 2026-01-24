@@ -6,9 +6,9 @@ const COLLECTION = 'camsites';
 // Default sample sites
 const SAMPLE_SITES = [
   { name: 'SC', status: 'ACTIVE' as const },
-  { name: 'LJ', status: 'ACTIVE' as const },
+  { name: 'LJ', status: 'INACTIVE' as const },
   { name: 'BJ', status: 'INACTIVE' as const },
-  { name: 'CS', status: 'ACTIVE' as const },
+  { name: 'CS', status: 'INACTIVE' as const },
 ];
 
 export async function initializeSampleCamSites(modelId: string): Promise<void> {
