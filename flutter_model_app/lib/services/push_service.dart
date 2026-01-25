@@ -119,4 +119,16 @@ class PushService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('notifications');
   }
+
+  /// Get the current FCM token
+  static Future<String?> getCurrentToken() async {
+    try {
+      final messaging = FirebaseMessaging.instance;
+      final token = await messaging.getToken();
+      return token;
+    } catch (e) {
+      debugPrint('Error getting FCM token: $e');
+      return null;
+    }
+  }
 }

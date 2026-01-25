@@ -1,10 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../../data/models/app_models.dart';
 import '../../data/repositories/api_repository.dart';
 import '../../core/constants/app_constants.dart';
 import '../../utils/device_helper.dart';
 import '../../utils/timezone_helper.dart';
+import '../../services/push_service.dart';
 
 class AuthController with ChangeNotifier {
   ModelProfile? _model;
@@ -68,6 +71,9 @@ class AuthController with ChangeNotifier {
         _error = null;
 
         await _storage.write(key: AppConstants.modelDataKey, value: _model!.id);
+
+        // Check and store FCM token if not present
+        await _checkAndStoreFCMToken(_model!.id);
 
         _isLoading = false;
         notifyListeners();
@@ -139,6 +145,105 @@ class AuthController with ChangeNotifier {
     } catch (e) {
       if (kDebugMode) {
         print('Failed to end session: $e');
+      }
+    }
+  }
+
+  /// Check if model has FCM token stored, if not, fetch and store current token
+  Future<void> _checkAndStoreFCMToken(String modelId) async {
+    try {
+      if (kDebugMode) {
+        print('Checking FCM token for model: $modelId');
+      }
+
+      // Fetch model data to check if deviceToken exists
+      final response = await http.get(
+        Uri.parse('${AppConstants.baseUrl}/api/model/list'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode != 200) {
+        if (kDebugMode) {
+          print('Failed to fetch model list: ${response.statusCode}');
+        }
+        return;
+      }
+
+      final data = jsonDecode(response.body);
+      if (data['success'] != true || data['data'] == null) {
+        if (kDebugMode) {
+          print('Invalid response when fetching model list');
+        }
+        return;
+      }
+
+      // Find current model
+      final models = data['data'] is List ? data['data'] : [data['data']];
+      final currentModel = models.firstWhere(
+        (m) => m['id'] == modelId,
+        orElse: () => null,
+      );
+
+      if (currentModel == null) {
+        if (kDebugMode) {
+          print('Current model not found in list');
+        }
+        return;
+      }
+
+      // Check if deviceToken is present
+      if (currentModel['deviceToken'] != null &&
+          currentModel['deviceToken'].toString().isNotEmpty) {
+        if (kDebugMode) {
+          print('Model already has FCM token stored');
+        }
+        return;
+      }
+
+      // No token found, get current FCM token and store it
+      if (kDebugMode) {
+        print('No FCM token found for model, fetching current token...');
+      }
+
+      final currentToken = await PushService.getCurrentToken();
+      if (currentToken != null) {
+        await _storeTokenInDatabase(modelId, currentToken);
+      } else {
+        if (kDebugMode) {
+          print('Failed to get current FCM token');
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error checking FCM token: $e');
+      }
+    }
+  }
+
+  /// Store FCM token in the database
+  Future<void> _storeTokenInDatabase(String modelId, String token) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${AppConstants.baseUrl}/api/model/update-token'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'modelId': modelId,
+          'deviceToken': token,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        if (kDebugMode) {
+          print('FCM token stored in database successfully');
+        }
+      } else {
+        if (kDebugMode) {
+          print('Failed to store FCM token: ${response.statusCode}');
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error storing FCM token in database: $e');
       }
     }
   }

@@ -32,6 +32,10 @@ export default function AdminPage() {
     XC: false,
     IL: false,
   });
+  const [noticeModel, setNoticeModel] = useState<string>("");
+  const [noticeText, setNoticeText] = useState<string>("");
+  const [noticeAll, setNoticeAll] = useState(false);
+  const [noticeUrl, setNoticeUrl] = useState<string>("");
   const [selectedModelId, setSelectedModelId] = useState<string>("");
   const [selectedModelName, setSelectedModelName] = useState<string>("");
   
@@ -322,6 +326,66 @@ export default function AdminPage() {
         setMessage(err instanceof Error ? err.message : "Failed to save account approval");
         setTimeout(() => setMessage(null), 3000);
       }
+    }
+  };
+
+  const handleSendNotice = async () => {
+    if (!noticeAll && !noticeModel) {
+      setMessage("Select a model or choose All");
+      return;
+    }
+
+    if (!noticeText.trim()) {
+      setMessage("Enter a notice message");
+      return;
+    }
+
+    setLoading(true);
+    setMessage("Sending notice...");
+    try {
+      const payload: {
+        message: string;
+        all?: boolean;
+        modelIds?: string[];
+        imageUrl?: string;
+        title?: string;
+      } = {
+        message: noticeText.trim(),
+        title: "Notice",
+      };
+
+      if (noticeAll) {
+        payload.all = true;
+      } else {
+        payload.modelIds = [noticeModel];
+      }
+
+      if (noticeUrl.trim()) {
+        payload.imageUrl = noticeUrl.trim();
+      }
+
+      const res = await fetch("/api/notice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setMessage(`Notice sent successfully! Delivered to ${data.sent} device(s).`);
+        setNoticeText("");
+        setNoticeUrl("");
+        setNoticeModel("");
+        setNoticeAll(false);
+      } else {
+        setMessage(data.error || "Failed to send notice");
+      }
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Failed to send notice");
+    } finally {
+      setLoading(false);
+      setTimeout(() => setMessage(null), 4000);
     }
   };
 
@@ -846,30 +910,80 @@ export default function AdminPage() {
             </div>
 
             {/* Right Column: Account Approval */}
-            <div className="bg-gray-900 p-6 rounded-lg">
+            <div className="bg-gray-900 p-4 lg:p-6 rounded-lg">
               <h2 className="text-xl font-bold mb-4">Account Approval</h2>
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { id: "sm-account", label: "SM ACCOUNT", key: "SM" },
-                  { id: "lj-account", label: "LJ ACCOUNT", key: "LJ" },
-                  { id: "bj-account", label: "BJ ACCOUNT", key: "BJ" },
-                  { id: "cs-account", label: "CS ACCOUNT", key: "CS" },
-                  { id: "xc-account", label: "XC ACCOUNT", key: "XC" },
-                  { id: "il-account", label: "IL ACCOUNT", key: "IL" },
-                ].map((account) => (
-                  <div key={account.id} className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id={account.id}
-                      checked={accountApprovals[account.key as keyof typeof accountApprovals]}
-                      onChange={(e) => handleAccountApprovalChange(account.key as keyof typeof accountApprovals, e.target.checked)}
-                      className="w-4 h-4 rounded"
-                    />
-                    <label htmlFor={account.id} className="text-xs text-gray-300 uppercase cursor-pointer">
-                      {account.label}
+              <div className="grid grid-cols-1 lg:grid-cols-[210px,1fr] gap-4">
+                <div className="grid grid-cols-2 gap-y-3 text-sm text-gray-200">
+                  {[
+                    { id: "sm-account", label: "SM ACCOUNT", key: "SM" },
+                    { id: "lj-account", label: "LJ ACCOUNT", key: "LJ" },
+                    { id: "bj-account", label: "BJ ACCOUNT", key: "BJ" },
+                    { id: "cs-account", label: "CS ACCOUNT", key: "CS" },
+                    { id: "xc-account", label: "XC ACCOUNT", key: "XC" },
+                    { id: "il-account", label: "IL ACCOUNT", key: "IL" },
+                  ].map((account) => (
+                    <label key={account.id} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        id={account.id}
+                        checked={accountApprovals[account.key as keyof typeof accountApprovals]}
+                        onChange={(e) => handleAccountApprovalChange(account.key as keyof typeof accountApprovals, e.target.checked)}
+                        className="w-4 h-4 rounded border-gray-600 bg-gray-800"
+                      />
+                      <span className="text-xs uppercase">{account.label}</span>
                     </label>
+                  ))}
+                </div>
+
+                <div className="bg-gray-950 rounded-lg border border-gray-800 p-4 shadow-inner">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-xs font-semibold uppercase text-gray-300">Send Notice</span>
+                    <select
+                      value={noticeModel}
+                      onChange={(e) => setNoticeModel(e.target.value)}
+                      disabled={noticeAll}
+                      className="flex-1 rounded-md bg-gray-200 text-gray-900 text-sm px-3 py-2 focus:outline-none disabled:opacity-50"
+                    >
+                      <option value="">Select Model Name</option>
+                      {models.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.name || m.id}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => setNoticeAll((prev) => !prev)}
+                      className={`px-3 py-2 rounded-md text-sm font-semibold ${noticeAll ? "bg-amber-500 text-black" : "bg-amber-400 text-black hover:bg-amber-500"}`}
+                    >
+                      ALL
+                    </button>
                   </div>
-                ))}
+
+                  <textarea
+                    value={noticeText}
+                    onChange={(e) => setNoticeText(e.target.value)}
+                    placeholder="Type your notice here..."
+                    className="w-full min-h-[140px] rounded-md bg-gray-200 text-gray-900 text-sm px-3 py-2 focus:outline-none resize-none"
+                  />
+
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                    <input
+                      type="url"
+                      value={noticeUrl}
+                      onChange={(e) => setNoticeUrl(e.target.value)}
+                      placeholder="Optional image URL"
+                      className="flex-1 rounded-md bg-gray-200 text-gray-900 text-sm px-3 py-2 focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSendNotice}
+                      className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm"
+                    >
+                      SEND
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

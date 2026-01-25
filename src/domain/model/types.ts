@@ -16,6 +16,7 @@ export interface ModelProfile {
   status: 'active' | 'inactive' | 'pending';
   username?: string;
   password?: string;
+  fcmToken?: string;
   createdAt: string;
   updatedAt: string;
   socialLinks?: {
