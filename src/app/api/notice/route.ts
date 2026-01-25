@@ -17,6 +17,8 @@ export async function POST(req: NextRequest) {
     // Collect tokens (supports legacy docs where docId != modelId and legacy deviceToken field)
     let tokens: string[] = [];
 
+    console.log('Notice request:', { all, modelIds, title, hasImage: Boolean(imageUrl) });
+
     if (all) {
       const snap = await db.collection('models').get();
       tokens = snap.docs
@@ -53,6 +55,8 @@ export async function POST(req: NextRequest) {
     } else {
       return NextResponse.json({ success: false, error: 'Provide modelIds or set all=true' }, { status: 400 });
     }
+
+    console.log('Notice tokens resolved:', { count: tokens.length, tokens });
 
     // Deduplicate tokens
     tokens = Array.from(new Set(tokens));
