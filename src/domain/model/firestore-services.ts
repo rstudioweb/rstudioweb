@@ -95,9 +95,11 @@ export async function addModel(model: Omit<ModelProfile, 'createdAt' | 'updatedA
       }
     }
 
+    const { id: _modelId, ...modelFieldsWithoutId } = modelFields;
+
     const newModel: ModelProfile = {
       id: docRef.id,
-      ...modelFields,
+      ...modelFieldsWithoutId,
       email: email || '',
       bio: bio || '',
       rating: rating || 0,
