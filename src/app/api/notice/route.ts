@@ -14,20 +14,41 @@ export async function POST(req: NextRequest) {
     initializeFirebase();
     const db = admin.firestore();
 
-    // Collect tokens
+    // Collect tokens (supports legacy docs where docId != modelId and legacy deviceToken field)
     let tokens: string[] = [];
 
     if (all) {
       const snap = await db.collection('models').get();
       tokens = snap.docs
-        .map((doc) => doc.data()?.fcmToken as string | undefined)
+        .map((doc) => {
+          const d = doc.data() || {};
+          return (d.fcmToken as string | undefined) || (d.deviceToken as string | undefined);
+        })
         .filter((t): t is string => Boolean(t));
     } else if (Array.isArray(modelIds) && modelIds.length > 0) {
-      const docs = await Promise.all(
+      // First try direct doc lookup; then fallback to querying by stored id field
+      const directDocs = await Promise.all(
         modelIds.map((id: string) => db.collection('models').doc(id).get())
       );
-      tokens = docs
-        .map((doc) => doc.data()?.fcmToken as string | undefined)
+
+      const missingIds = modelIds.filter((_, idx) => !directDocs[idx]?.exists);
+
+      const fallbackDocs = missingIds.length
+        ? (
+            await Promise.all(
+              missingIds.map(async (id: string) => {
+                const snap = await db.collection('models').where('id', '==', id).limit(1).get();
+                return snap.empty ? null : snap.docs[0];
+              })
+            )
+          ).filter(Boolean)
+        : [];
+
+      tokens = [...directDocs, ...fallbackDocs]
+        .map((doc) => {
+          const d = doc?.data() || {};
+          return (d.fcmToken as string | undefined) || (d.deviceToken as string | undefined);
+        })
         .filter((t): t is string => Boolean(t));
     } else {
       return NextResponse.json({ success: false, error: 'Provide modelIds or set all=true' }, { status: 400 });
