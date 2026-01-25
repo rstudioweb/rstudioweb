@@ -18,7 +18,7 @@ export async function fetchAllModels(): Promise<FetchModelResponse> {
     const models: ModelProfile[] = snapshot.docs.map((doc) => {
       const data = doc.data();
       return {
-        id: doc.id,
+        id: data.id || doc.id,
         name: data.name || '',
         email: data.email || '',
         phone: data.phone || '',
@@ -43,15 +43,28 @@ export async function fetchAllModels(): Promise<FetchModelResponse> {
   }
 }
 
-export async function addModel(model: Omit<ModelProfile, 'id' | 'createdAt' | 'updatedAt'>): Promise<FetchModelResponse> {
+export async function addModel(model: Omit<ModelProfile, 'createdAt' | 'updatedAt'>): Promise<FetchModelResponse> {
   try {
     const db = getDb();
     const modelsRef = db.collection('models');
     
     // Extract account details
     const { email, bio, rating, totalBookings, ...modelFields } = model;
-    
-    const docRef = await modelsRef.add({
+
+    if (!modelFields.id) {
+      return { success: false, error: 'Model id is required' };
+    }
+
+    const docRef = modelsRef.doc(modelFields.id);
+
+    // Prevent accidental overwrite if the id already exists
+    const existing = await docRef.get();
+    if (existing.exists) {
+      return { success: false, error: 'Model id already exists' };
+    }
+
+    await docRef.set({
+      id: modelFields.id,
       name: modelFields.name || '',
       phone: modelFields.phone || '',
       location: modelFields.location || '',

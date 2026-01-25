@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getDb } from '@/lib/firebase';
 import { updateModel } from '@/domain/model';
 
 /**
@@ -25,16 +26,29 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Primary: update by document id
     const result = await updateModel(modelId, { fcmToken });
 
-    if (!result.success) {
+    if (result.success) {
+      return NextResponse.json({ success: true, data: result.data });
+    }
+
+    // Fallback: update by stored `id` field (for legacy docs where docId != modelId)
+    const db = getDb();
+    const snap = await db.collection('models').where('id', '==', modelId).limit(1).get();
+
+    if (snap.empty) {
       return NextResponse.json(
-        { success: false, error: result.error || 'Failed to update FCM token' },
-        { status: 500 }
+        { success: false, error: result.error || 'Model not found for token update' },
+        { status: 404 }
       );
     }
 
-    return NextResponse.json({ success: true, data: result.data });
+    const docRef = snap.docs[0].ref;
+    await docRef.update({ fcmToken, updatedAt: new Date().toISOString() });
+    const updated = await docRef.get();
+
+    return NextResponse.json({ success: true, data: { id: docRef.id, ...updated.data() } });
   } catch (error) {
     console.error('Error updating FCM token:', error);
     return NextResponse.json(
