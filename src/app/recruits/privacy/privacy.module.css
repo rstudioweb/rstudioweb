@@ -1,0 +1,88 @@
+.page {
+  --bg: #eef4e8;
+  --ink: #141824;
+  --muted: #4b5365;
+  --line: #d9dfcc;
+  --accent: #0f8f52;
+  min-height: 100vh;
+  padding: 2.25rem 1rem 4.5rem;
+  background:
+    radial-gradient(circle at 12% 6%, #f6eec6 0, transparent 34%),
+    radial-gradient(circle at 88% 2%, #d7f5e7 0, transparent 32%),
+    var(--bg);
+  color: var(--ink);
+}
+
+.card {
+  max-width: 52rem;
+  margin: 0 auto;
+  background: linear-gradient(180deg, #ffffff, #fcfefb);
+  border: 1px solid var(--line);
+  border-radius: 1.15rem;
+  padding: 1.35rem;
+  line-height: 1.62;
+  box-shadow: 0 16px 36px rgba(19, 30, 20, 0.08);
+}
+
+.meta {
+  margin: 0 0 0.95rem;
+  color: var(--muted);
+  display: inline-block;
+  background: #f1f7ea;
+  border: 1px solid #dde8d2;
+  border-radius: 999px;
+  padding: 0.25rem 0.7rem;
+  font-size: 0.86rem;
+}
+
+.card h1 {
+  margin: 0 0 0.55rem;
+  font-size: clamp(1.45rem, 2.6vw, 2rem);
+  letter-spacing: -0.01em;
+}
+
+.card h2 {
+  margin: 1.3rem 0 0.5rem;
+  font-size: 1.05rem;
+  border-left: 3px solid var(--accent);
+  padding-left: 0.55rem;
+}
+
+.card p {
+  margin: 0.5rem 0;
+}
+
+.card ul {
+  margin: 0.35rem 0 0.75rem;
+  padding: 0;
+  list-style: none;
+}
+
+.card li {
+  margin: 0.35rem 0;
+  position: relative;
+  padding-left: 1.05rem;
+}
+
+.card li::before {
+  content: "";
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 999px;
+  background: var(--accent);
+  position: absolute;
+  left: 0;
+  top: 0.47rem;
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding-top: 1rem;
+    padding-bottom: 3rem;
+  }
+
+  .card {
+    padding: 1rem;
+    border-radius: 0.95rem;
+  }
+}
