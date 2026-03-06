@@ -53,12 +53,48 @@ export default function Recruits() {
     const [fullName, setFullName] = useState("");
     const [age, setAge] = useState("");
     const [whatsappNumber, setWhatsappNumber] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [fullNameTouched, setFullNameTouched] = useState(false);
     const [ageTouched, setAgeTouched] = useState(false);
     const [whatsappTouched, setWhatsappTouched] = useState(false);
     const [activeSlide, setActiveSlide] = useState(0);
 
     const whatsappLink = "https://wa.me/message/WLM2MJELD3BVC1";
+
+    const isValidAge = (value: string) => {
+        if (!/^\d+$/.test(value.trim())) {
+            return false;
+        }
+
+        const ageNumber = Number(value);
+        return ageNumber >= 18 && ageNumber <= 52;
+    };
+
+    const isValidWhatsappNumber = (value: string) => {
+        // Mobile only: exactly 10 digits and starts with 9/8/7/6.
+        if (!/^[6-9]\d{9}$/.test(value)) {
+            return false;
+        }
+
+        // Reject obvious dummy/fake numbers.
+        const blockedNumbers = new Set(["9999999999", "0000000000", "1234567890", "0123456789", "9000000000"]);
+
+        if (blockedNumbers.has(value)) {
+            return false;
+        }
+
+        // Reject repeated-digit numbers like 8888888888.
+        if (/^(\d)\1{9}$/.test(value)) {
+            return false;
+        }
+
+        return true;
+    };
+
+    const ageValue = age.trim();
+    const ageHasError = ageTouched && (!!ageValue && !isValidAge(ageValue));
+    const whatsappValue = whatsappNumber.trim();
+    const whatsappHasError = whatsappTouched && (!!whatsappValue && !isValidWhatsappNumber(whatsappValue));
 
     const goToNextStep = () => {
         if (step === 1 && fullName.trim()) {
@@ -67,17 +103,63 @@ export default function Recruits() {
             setFullNameTouched(true);
         }
 
-        if (step === 2 && age.trim()) {
+        if (step === 2 && age.trim() && isValidAge(age.trim())) {
             setStep(3);
         } else if (step === 2) {
             setAgeTouched(true);
         }
     };
 
-    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+
         if (!whatsappNumber.trim()) {
-            event.preventDefault();
             setWhatsappTouched(true);
+            return;
+        }
+
+        if (!isValidWhatsappNumber(whatsappNumber.trim())) {
+            setWhatsappTouched(true);
+            return;
+        }
+
+        try {
+            setIsSubmitting(true);
+
+            const payload = {
+                name: fullName.trim(),
+                age: age.trim(),
+                whatsappNumber: whatsappNumber.trim(),
+                lead_source: "recruits",
+            };
+
+            const response = await fetch("/api/recruits-apply", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(payload),
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.status === "success") {
+                const message =
+                    `Hi, I Am a Female, Want to work as a cam model in your STudio. ` +
+                    `My name is below ...\nName: ${fullName.trim()}\nAge: ${age.trim()}`;
+
+                const redirectUrl = new URL(whatsappLink);
+                redirectUrl.searchParams.set("text", message);
+                window.location.assign(redirectUrl.toString());
+                return;
+            }
+
+            alert(data.message || "Failed to submit your application. Please try again.");
+        } catch (error) {
+            console.error("Recruits submit error:", error);
+            alert("Something went wrong while submitting. Please try again.");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -138,7 +220,7 @@ export default function Recruits() {
 
             <section className={`${styles.section} ${styles.applySection}`}>
                 <h2 className={styles.sectionTitle}>Apply Now</h2>
-                <form action="/api/apply" method="POST" className={styles.form} onSubmit={handleSubmit}>
+                <form action="/api/recruits-apply" method="POST" className={styles.form} onSubmit={handleSubmit}>
                     <input type="hidden" name="fullName" value={fullName} />
                     <input type="hidden" name="age" value={age} />
 
@@ -148,7 +230,7 @@ export default function Recruits() {
                                 <label htmlFor="fullName" className={styles.label}>
                                     Full Name
                                 </label>
-                                {fullNameTouched && !fullName.trim() ? <span className={styles.mandatoryText}>Mandatory</span> : null}
+                                {fullNameTouched && !fullName.trim() ? <span className={styles.mandatoryText}>What is your Name?</span> : null}
                             </div>
                             <input
                                 id="fullName"
@@ -171,19 +253,19 @@ export default function Recruits() {
                                     Age
                                 </label>
                                 {ageTouched && !age.trim() ? <span className={styles.mandatoryText}>Mandatory</span> : null}
+                                {ageHasError ? <span className={styles.mandatoryText}>Age Minimum 18y and Maximum 52years</span> : null}
                             </div>
                             <input
                                 id="age"
-                                type="number"
+                                type="text"
+                                inputMode="numeric"
                                 name="ageField"
                                 placeholder="Age"
-                                min={18}
-                                max={40}
                                 required
                                 value={age}
                                 onChange={(event) => setAge(event.target.value)}
                                 onBlur={() => setAgeTouched(true)}
-                                className={`${styles.input} ${ageTouched && !age.trim() ? styles.inputError : ""}`}
+                                className={`${styles.input} ${ageTouched && (!age.trim() || ageHasError) ? styles.inputError : ""}`}
                             />
                         </>
                     ) : null}
@@ -195,17 +277,24 @@ export default function Recruits() {
                                     Whats App Number (optional)
                                 </label>
                                 {whatsappTouched && !whatsappNumber.trim() ? <span className={styles.mandatoryText}>Mandatory</span> : null}
+                                {whatsappHasError ? (
+                                    <span className={styles.mandatoryText}>
+                                        Enter a valid 10-digit mobile number starting with 9, 8, 7, or 6. No spaces, characters, or dummy numbers.
+                                    </span>
+                                ) : null}
                             </div>
                             <input
                                 id="whatsappNumber"
-                                type="tel"
+                                type="text"
+                                inputMode="numeric"
                                 name="whatsappNumber"
                                 placeholder="Whats App Number (optional)"
+                                maxLength={10}
                                 required
                                 value={whatsappNumber}
                                 onChange={(event) => setWhatsappNumber(event.target.value)}
                                 onBlur={() => setWhatsappTouched(true)}
-                                className={`${styles.input} ${whatsappTouched && !whatsappNumber.trim() ? styles.inputError : ""}`}
+                                className={`${styles.input} ${whatsappTouched && (!whatsappNumber.trim() || whatsappHasError) ? styles.inputError : ""}`}
                             />
                         </>
                     ) : null}
@@ -215,13 +304,12 @@ export default function Recruits() {
                             type="button"
                             className={styles.submitBtn}
                             onClick={goToNextStep}
-                            disabled={(step === 1 && !fullName.trim()) || (step === 2 && !age.trim())}
                         >
                             Continue
                         </button>
                     ) : (
-                        <button type="submit" className={styles.submitBtn}>
-                            Submit Application
+                        <button type="submit" className={styles.submitBtn} disabled={isSubmitting}>
+                            {isSubmitting ? "Submitting..." : "Submit Application"}
                         </button>
                     )}
                 </form>
