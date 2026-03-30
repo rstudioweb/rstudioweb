@@ -164,7 +164,7 @@ export default function SignupForm() {
       console.log("Form successfully submitted to backend:", result);
 
       if (result.status === "success") {
-        window.location.href = "https://wa.link/ozjce3";
+        window.location.href = "https://wa.me/919175508577";
       } else {
         alert("❌ Failed to submit form. Please try again.");
       }
